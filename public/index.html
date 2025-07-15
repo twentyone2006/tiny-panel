@@ -1,0 +1,921 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>服务器运维管理面板</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        :root {
+            --primary-color: #3498db;
+            --secondary-color: #2ecc71;
+            --danger-color: #e74c3c;
+            --warning-color: #f39c12;
+            --gray-light: #f5f7fa;
+            --gray: #e4e7ed;
+            --text-color: #303133;
+            --border-radius: 4px;
+            --shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: var(--gray-light);
+            color: var(--text-color);
+            display: flex;
+            min-height: 100vh;
+        }
+
+        .sidebar {
+            width: 250px;
+            background-color: #2c3e50;
+            color: white;
+            padding: 20px 0;
+            height: 100vh;
+            position: fixed;
+            overflow-y: auto;
+        }
+
+        .logo {
+            text-align: center;
+            padding: 10px 0 20px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            margin-bottom: 20px;
+        }
+
+        .logo h1 {
+            font-size: 1.5rem;
+            color: white;
+        }
+
+        .nav-menu {
+            list-style: none;
+        }
+
+        .nav-item {
+            margin-bottom: 5px;
+        }
+
+        .nav-link {
+            display: flex;
+            align-items: center;
+            padding: 12px 20px;
+            color: white;
+            text-decoration: none;
+            transition: all 0.3s;
+            border-left: 3px solid transparent;
+        }
+
+        .nav-link:hover, .nav-link.active {
+            background-color: #34495e;
+            border-left-color: var(--primary-color);
+        }
+
+        .nav-link i {
+            margin-right: 10px;
+            font-size: 1.2rem;
+        }
+
+        .main-content {
+            flex: 1;
+            margin-left: 250px;
+            padding: 20px;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--gray);
+        }
+
+        .header-title {
+            font-size: 1.8rem;
+            font-weight: 500;
+        }
+
+        .content-area {
+            display: none;
+        }
+
+        .content-area.active {
+            display: block;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        /* 通用组件样式 */
+        .btn {
+            padding: 8px 16px;
+            border-radius: var(--border-radius);
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .btn i { margin-right: 5px; }
+        .btn-primary { background-color: var(--primary-color); color: white; }
+        .btn-primary:hover { background-color: #2980b9; }
+        .btn-danger { background-color: var(--danger-color); color: white; }
+        .btn-danger:hover { background-color: #c0392b; }
+        .btn-success { background-color: var(--secondary-color); color: white; }
+        .btn-success:hover { background-color: #27ae60; }
+
+        .card {
+            background-color: white;
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow);
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--gray);
+        }
+
+        .card-title { font-size: 1.2rem; font-weight: 500; }
+
+        .table { width: 100%; border-collapse: collapse; }
+        .table th, .table td { padding: 12px 15px; text-align: left; border-bottom: 1px solid var(--gray); }
+        .table th { background-color: var(--gray-light); font-weight: 500; }
+        .table tbody tr:hover { background-color: rgba(0, 0, 0, 0.02); }
+
+        .form-group { margin-bottom: 15px; }
+        .form-label { display: block; margin-bottom: 5px; font-weight: 500; }
+        .form-control { width: 100%; padding: 10px; border: 1px solid var(--gray); border-radius: var(--border-radius); font-size: 14px; }
+        .form-control:focus { outline: none; border-color: var(--primary-color); box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2); }
+
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex; align-items: center; justify-content: center;
+            z-index: 1000; visibility: hidden; opacity: 0;
+            transition: all 0.3s;
+        }
+
+        .modal-overlay.active { visibility: visible; opacity: 1; }
+        .modal { background-color: white; border-radius: var(--border-radius); width: 500px; max-width: 90%; box-shadow: var(--shadow); transform: translateY(-20px); transition: all 0.3s; }
+        .modal-overlay.active .modal { transform: translateY(0); }
+        .modal-header { padding: 15px 20px; border-bottom: 1px solid var(--gray); display: flex; justify-content: space-between; align-items: center; }
+        .modal-title { font-size: 1.2rem; font-weight: 500; }
+        .modal-close { background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #909399; }
+        .modal-body { padding: 20px; }
+        .modal-footer { padding: 15px 20px; border-top: 1px solid var(--gray); display: flex; justify-content: flex-end; gap: 10px; }
+
+        .status-badge { padding: 3px 8px; border-radius: 12px; font-size: 12px; font-weight: 500; }
+        .status-normal { background-color: rgba(46, 204, 113, 0.15); color: var(--secondary-color); }
+        .status-warning { background-color: rgba(243, 156, 18, 0.15); color: var(--warning-color); }
+        .status-error { background-color: rgba(231, 76, 60, 0.15); color: var(--danger-color); }
+
+        .tab-container { margin-bottom: 20px; }
+        .tabs { display: flex; border-bottom: 1px solid var(--gray); }
+        .tab { padding: 10px 20px; cursor: pointer; border-bottom: 3px solid transparent; transition: all 0.3s; }
+        .tab.active { border-bottom-color: var(--primary-color); color: var(--primary-color); font-weight: 500; }
+        .tab-content { padding: 20px 0; }
+
+        /* 登录样式 */
+        .login-container {
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            height: 100vh; background-color: var(--gray-light);
+        }
+        .login-form {
+            background-color: white; padding: 2rem; border-radius: var(--border-radius);
+            box-shadow: var(--shadow); width: 350px; max-width: 90%;
+        }
+        .login-form h2 { margin-bottom: 1.5rem; text-align: center; color: var(--primary-color); }
+        .login-form .form-group { margin-bottom: 1rem; }
+        .login-form .btn { width: 100%; padding: 10px; }
+    </style>
+</head>
+<body>
+    <!-- 登录界面 -->
+    <div id="login-container" class="login-container">
+        <div class="login-form">
+            <h2><i class="fas fa-server"></i> 服务器运维面板</h2>
+            <div id="login-messages"></div>
+            <form id="login-form">
+                <div class="form-group">
+                    <label for="username">用户名</label>
+                    <input type="text" class="form-control" id="username" name="username" required>
+                </div>
+                <div class="form-group">
+                    <label for="password">密码</label>
+                    <input type="password" class="form-control" id="password" name="password" required>
+                </div>
+                <button type="submit" class="btn btn-primary"><i class="fas fa-sign-in-alt"></i> 登录</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- 主应用界面 -->
+    <div id="app-container" style="display: none;">
+        <div class="sidebar">
+            <div class="logo">
+                <h1><i class="fas fa-server"></i> 服务器面板</h1>
+            </div>
+            <ul class="nav-menu">
+                <li class="nav-item">
+                    <a href="#dashboard" class="nav-link active" data-target="dashboard"><i class="fas fa-tachometer-alt"></i> 仪表盘</a>
+                </li>
+                <li class="nav-item">
+                    <a href="#file-manager" class="nav-link" data-target="file-manager"><i class="fas fa-folder-open"></i> 文件管理</a>
+                </li>
+                <li class="nav-item">
+                    <a href="#site-manager" class="nav-link" data-target="site-manager"><i class="fas fa-globe"></i> 网站管理</a>
+                </li>
+                <li class="nav-item">
+                    <a href="#database-manager" class="nav-link" data-target="database-manager"><i class="fas fa-database"></i> 数据库</a>
+                </li>
+                <li class="nav-item">
+                    <a href="#service-manager" class="nav-link" data-target="service-manager"><i class="fas fa-cogs"></i> 服务管理</a>
+                </li>
+                <li class="nav-item">
+                    <a href="#cron-manager" class="nav-link" data-target="cron-manager"><i class="fas fa-clock"></i> 定时任务</a>
+                </li>
+                <li class="nav-item">
+                    <a href="#backup-manager" class="nav-link" data-target="backup-manager"><i class="fas fa-shield-alt"></i> 备份管理</a>
+                </li>
+                <li class="nav-item">
+                    <a href="#settings" class="nav-link" data-target="settings"><i class="fas fa-cog"></i> 设置</a>
+                </li>
+                <li class="nav-item" style="margin-top: 20px;">
+                    <a href="#logout" class="nav-link" data-target="logout"><i class="fas fa-sign-out-alt"></i> 退出登录</a>
+                </li>
+            </ul>
+        </div>
+
+        <div class="main-content">
+            <!-- 仪表盘模块 -->
+            <div id="dashboard" class="content-area active">
+                <div class="header">
+                    <h1 class="header-title">系统概览</h1>
+                </div>
+
+                <div class="stats-container" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 20px;">
+                    <div class="card">
+                        <div class="card-header"><h3>CPU 使用率</h3></div>
+                        <div class="stat-value" id="cpu-usage" style="font-size: 2rem; text-align: center; padding: 20px 0;">0%</div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header"><h3>内存使用</h3></div>
+                        <div class="stat-value" id="mem-usage" style="font-size: 2rem; text-align: center; padding: 20px 0;">0 MB / 0 MB</div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header"><h3>磁盘空间</h3></div>
+                        <div class="stat-value" id="disk-usage" style="font-size: 2rem; text-align: center; padding: 20px 0;">0 GB / 0 GB</div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header"><h2 class="card-title">快速操作</h2></div>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px; padding: 10px;">
+                        <button class="btn btn-primary" onclick="navigateTo('site-manager')"><i class="fas fa-plus"></i> 创建网站</button>
+                        <button class="btn btn-primary" onclick="navigateTo('database-manager')"><i class="fas fa-database"></i> 创建数据库</button>
+                        <button class="btn btn-success" onclick="backupAll()"><i class="fas fa-shield-alt"></i> 备份系统</button>
+                        <button class="btn btn-warning" onclick="checkUpdates()"><i class="fas fa-sync-alt"></i> 检查更新</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 网站管理模块 -->
+            <div id="site-manager" class="content-area">
+                <div class="header">
+                    <h1 class="header-title">网站管理</h1>
+                    <button id="addSiteBtn" class="btn btn-primary"><i class="fas fa-plus"></i> 添加网站</button>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title">网站列表</h2>
+                    </div>
+                    <div class="card-body">
+                        <table class="table" id="sitesTable">
+                            <thead>
+                                <tr>
+                                    <th>域名</th>
+                                    <th>端口</th>
+                                    <th>PHP版本</th>
+                                    <th>SSL</th>
+                                    <th>状态</th>
+                                    <th>路径</th>
+                                    <th>大小</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody id="sitesTableBody">
+                                <!-- 网站数据将通过JavaScript动态加载 -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 添加网站模态框 -->
+            <div class="modal-overlay" id="addSiteModal">
+                <div class="modal">
+                    <div class="modal-header">
+                        <h3 class="modal-title">添加新网站</h3>
+                        <button class="modal-close">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="addSiteForm">
+                            <div class="form-group">
+                                <label for="domain">域名</label>
+                                <input type="text" class="form-control" id="domain" name="domain" required placeholder="例如: example.com">
+                            </div>
+                            <div class="form-group">
+                                <label for="port">端口</label>
+                                <input type="number" class="form-control" id="port" name="port" required value="80">
+                            </div>
+                            <div class="form-group">
+                                <label for="sitePath">网站路径</label>
+                                <input type="text" class="form-control" id="sitePath" name="sitePath" required placeholder="例如: /var/www/example.com">
+                            </div>
+                            <div class="form-group">
+                                <label for="phpVersion">PHP版本</label>
+                                <select class="form-control" id="phpVersion" name="phpVersion">
+                                    <option value="">无</option>
+                                    <option value="5.6">PHP 5.6</option>
+                                    <option value="7.0">PHP 7.0</option>
+                                    <option value="7.1">PHP 7.1</option>
+                                    <option value="7.2">PHP 7.2</option>
+                                    <option value="7.3">PHP 7.3</option>
+                                    <option value="7.4">PHP 7.4</option>
+                                    <option value="8.0">PHP 8.0</option>
+                                    <option value="8.1">PHP 8.1</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="ssl">SSL配置</label>
+                                <select class="form-control" id="ssl" name="ssl">
+                                    <option value="none">无</option>
+                                    <option value="self">自签名证书</option>
+                                    <option value="letsencrypt">Let's Encrypt</option>
+                                </select>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn btn-danger modal-cancel">取消</button>
+                        <button class="btn btn-primary" id="submitSiteBtn">创建</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 数据库管理模块 -->
+            <div id="database-manager" class="content-area">
+                <div class="header">
+                    <h1 class="header-title">数据库管理</h1>
+                    <button id="addDatabaseBtn" class="btn btn-primary"><i class="fas fa-plus"></i> 创建数据库</button>
+                </div>
+
+                <div class="tab-container">
+                    <div class="tabs">
+                        <div class="tab active" data-tab="mysql">MySQL</div>
+                        <div class="tab" data-tab="sqlite">SQLite</div>
+                        <div class="tab" data-tab="backups">备份管理</div>
+                    </div>
+
+                    <div class="tab-content" id="mysql-tab">
+                        <div class="card">
+                            <div class="card-header">
+                                <h2 class="card-title">MySQL数据库列表</h2>
+                            </div>
+                            <div class="card-body">
+                                <table class="table" id="mysqlTable">
+                                    <thead>
+                                        <tr>
+                                            <th>数据库名称</th>
+                                            <th>大小</th>
+                                            <th>用户</th>
+                                            <th>状态</th>
+                                            <th>操作</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="mysqlTableBody">
+                                        <!-- MySQL数据将通过JavaScript动态加载 -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="tab-content" id="sqlite-tab" style="display: none;">
+                        <div class="card">
+                            <div class="card-header">
+                                <h2 class="card-title">SQLite数据库列表</h2>
+                            </div>
+                            <div class="card-body">
+                                <table class="table" id="sqliteTable">
+                                    <thead>
+                                        <tr>
+                                            <th>数据库名称</th>
+                                            <th>大小</th>
+                                            <th>路径</th>
+                                            <th>操作</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="sqliteTableBody">
+                                        <!-- SQLite数据将通过JavaScript动态加载 -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="tab-content" id="backups-tab" style="display: none;">
+                        <div class="card">
+                            <div class="card-header">
+                                <h2 class="card-title">数据库备份</h2>
+                                <button id="createBackupBtn" class="btn btn-primary"><i class="fas fa-plus"></i> 创建备份</button>
+                            </div>
+                            <div class="card-body">
+                                <table class="table" id="backupsTable">
+                                    <thead>
+                                        <tr>
+                                            <th>备份名称</th>
+                                            <th>数据库</th>
+                                            <th>类型</th>
+                                            <th>大小</th>
+                                            <th>创建时间</th>
+                                            <th>操作</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="backupsTableBody">
+                                        <!-- 备份数据将通过JavaScript动态加载 -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 创建数据库模态框 -->
+            <div class="modal-overlay" id="addDatabaseModal">
+                <div class="modal">
+                    <div class="modal-header">
+                        <h3 class="modal-title">创建新数据库</h3>
+                        <button class="modal-close">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="addDatabaseForm">
+                            <div class="form-group">
+                                <label for="dbType">数据库类型</label>
+                                <select class="form-control" id="dbType" name="dbType" required>
+                                    <option value="mysql">MySQL</option>
+                                    <option value="sqlite">SQLite</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="dbName">数据库名称</label>
+                                <input type="text" class="form-control" id="dbName" name="dbName" required placeholder="字母、数字和下划线组成">
+                            </div>
+                            <div class="form-group" id="mysqlOptions">
+                                <label for="dbUser">数据库用户</label>
+                                <input type="text" class="form-control" id="dbUser" name="dbUser" placeholder="自动生成">
+                                <label for="dbPassword" style="margin-top: 10px;">数据库密码</label>
+                                <input type="password" class="form-control" id="dbPassword" name="dbPassword" placeholder="自动生成">
+                            </div>
+                            <div class="form-group" id="sqliteOptions" style="display: none;">
+                                <label for="sqlitePath">数据库路径</label>
+                                <input type="text" class="form-control" id="sqlitePath" name="sqlitePath" placeholder="例如: /var/www/sqlite/example.db">
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn btn-danger modal-cancel">取消</button>
+                        <button class="btn btn-primary" id="submitDatabaseBtn">创建</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 其他模块内容将在后续步骤中添加 -->
+        </div>
+    </div>
+
+    <!-- 模态框容器 -->
+    <div id="modals-container"></div>
+
+    <script>
+        // 应用状态管理
+        const appState = {
+            currentView: 'dashboard',
+            userAuthenticated: false
+        };
+
+        // DOM 加载完成后初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            initRouter();
+            checkLoginStatus();
+            if (appState.userAuthenticated) {
+                loadDashboardData();
+            }
+        });
+
+        // 路由初始化
+        function initRouter() {
+            // 导航点击事件
+            document.querySelectorAll('.nav-link').forEach(link => {
+                link.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const target = this.getAttribute('data-target');
+                    navigateTo(target);
+                });
+            });
+        }
+
+        // 页面导航
+        function navigateTo(view) {
+            if (view === 'logout') {
+                logout();
+                return;
+            }
+
+            // 更新导航状态
+            document.querySelectorAll('.nav-link').forEach(link => {
+                link.classList.toggle('active', link.getAttribute('data-target') === view);
+            });
+
+            // 更新内容区域
+            document.querySelectorAll('.content-area').forEach(area => {
+                area.classList.toggle('active', area.id === view);
+            });
+
+            // 加载对应视图数据
+            switch(view) {
+                case 'dashboard':
+                    loadDashboardData();
+                    break;
+                case 'site-manager':
+                    loadSitesData();
+                    break;
+                case 'database-manager':
+                    loadDatabaseData();
+                    break;
+                // 其他视图加载逻辑
+            }
+
+            appState.currentView = view;
+            // 更新URL哈希
+            window.location.hash = view;
+        }
+
+        // 登录状态检查
+        function checkLoginStatus() {
+            fetch('/check-auth')
+                .then(response => response.json())
+                .then(data => {
+                    if(data.authenticated) {
+                        appState.userAuthenticated = true;
+                        document.getElementById('login-container').style.display = 'none';
+                        document.getElementById('app-container').style.display = 'flex';
+                        // 从URL哈希加载视图
+                        const hashView = window.location.hash.substring(1);
+                        if (hashView) navigateTo(hashView);
+                    } else {
+                        appState.userAuthenticated = false;
+                        document.getElementById('login-container').style.display = 'flex';
+                        document.getElementById('app-container').style.display = 'none';
+                    }
+                });
+        }
+
+        // 登录处理
+        document.getElementById('login-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+
+            fetch('/login', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({username, password})
+            })
+            .then(response => response.json())
+            .then(data => {
+                if(data.status === 'success') {
+                    checkLoginStatus();
+                } else {
+                    document.getElementById('login-messages').innerHTML = 
+                        `<div class="alert alert-danger">${data.message}</div>`;
+                }
+            });
+        });
+
+        // 登出处理
+        function logout() {
+            fetch('/logout')
+                .then(() => {
+                    appState.userAuthenticated = false;
+                    checkLoginStatus();
+                });
+        }
+
+        // 仪表盘数据加载
+        function loadDashboardData() {
+            fetch('/api/system/stats')
+                .then(response => response.json())
+                .then(data => {
+                    if(data.status === 'success') {
+                        document.getElementById('cpu-usage').textContent = data.cpu + '%';
+                        document.getElementById('mem-usage').textContent = 
+                            `${data.mem_used} MB / ${data.mem_total} MB`;
+                        document.getElementById('disk-usage').textContent = 
+                            `${data.disk_used} GB / ${data.disk_total} GB`;
+                    }
+                });
+
+            // 设置定时刷新
+            if (window.dashboardInterval) clearInterval(window.dashboardInterval);
+            window.dashboardInterval = setInterval(loadDashboardData, 5000);
+        }
+
+        // 网站数据加载
+        function loadSitesData() {
+            // 实现网站数据加载逻辑
+            fetch('/api/sites')
+                .then(response => response.json())
+                .then(data => {
+                    if(data.status === 'success') {
+                        renderSitesTable(data.sites);
+                    }
+                });
+        }
+
+        // 数据库数据加载
+        function loadDatabaseData() {
+            // 实现数据库数据加载逻辑
+            fetch('/api/databases')
+                .then(response => response.json())
+                .then(data => {
+                    if(data.status === 'success') {
+                        renderDatabasesTable(data.databases);
+                    }
+                });
+        }
+
+        // 模态框操作
+        function initModals() {
+            // 添加网站模态框
+            document.getElementById('addSiteBtn').addEventListener('click', () => {
+                document.getElementById('addSiteModal').classList.add('active');
+            });
+
+            // 添加数据库模态框
+            document.getElementById('addDatabaseBtn').addEventListener('click', () => {
+                document.getElementById('addDatabaseModal').classList.add('active');
+            });
+
+            // 数据库类型切换
+            document.getElementById('dbType').addEventListener('change', function() {
+                const mysqlOptions = document.getElementById('mysqlOptions');
+                const sqliteOptions = document.getElementById('sqliteOptions');
+                if (this.value === 'mysql') {
+                    mysqlOptions.style.display = 'block';
+                    sqliteOptions.style.display = 'none';
+                } else {
+                    mysqlOptions.style.display = 'none';
+                    sqliteOptions.style.display = 'block';
+                }
+            });
+
+            // 关闭模态框
+            document.querySelectorAll('.modal-close, .modal-cancel').forEach(elem => {
+                elem.addEventListener('click', function() {
+                    document.querySelectorAll('.modal-overlay').forEach(modal => {
+                        modal.classList.remove('active');
+                    });
+                });
+            });
+
+            // 点击模态框外部关闭
+            document.querySelectorAll('.modal-overlay').forEach(overlay => {
+                overlay.addEventListener('click', function(e) {
+                    if (e.target === this) {
+                        this.classList.remove('active');
+                    }
+                });
+            });
+        }
+
+        // 标签页切换
+        function initTabs() {
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.addEventListener('click', function() {
+                    const tabContainer = this.parentElement;
+                    const tabId = this.getAttribute('data-tab');
+
+                    // 更新标签状态
+                    tabContainer.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                    this.classList.add('active');
+
+                    // 更新内容区域
+                    const tabContentId = tabId + '-tab';
+                    tabContainer.parentElement.querySelectorAll('.tab-content').forEach(content => {
+                        content.style.display = content.id === tabContentId ? 'block' : 'none';
+                    });
+                });
+            });
+        }
+
+        // 表单提交处理
+        function initForms() {
+            // 添加网站表单
+            document.getElementById('submitSiteBtn').addEventListener('click', submitSiteForm);
+            // 添加数据库表单
+            document.getElementById('submitDatabaseBtn').addEventListener('click', submitDatabaseForm);
+        }
+
+        // 提交网站表单
+        function submitSiteForm() {
+            const form = document.getElementById('addSiteForm');
+            const formData = new FormData(form);
+            const siteData = Object.fromEntries(formData.entries());
+
+            fetch('/api/site', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(siteData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    document.getElementById('addSiteModal').classList.remove('active');
+                    form.reset();
+                    loadSitesData();
+                    showMessage('网站创建成功');
+                } else {
+                    showMessage(data.message || '网站创建失败', 'error');
+                }
+            })
+            .catch(error => {
+                showMessage('网络错误，无法创建网站', 'error');
+                console.error(error);
+            });
+        }
+
+        // 提交数据库表单
+        function submitDatabaseForm() {
+            const form = document.getElementById('addDatabaseForm');
+            const formData = new FormData(form);
+            const dbData = Object.fromEntries(formData.entries());
+
+            fetch('/api/database', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(dbData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    document.getElementById('addDatabaseModal').classList.remove('active');
+                    form.reset();
+                    loadDatabaseData();
+                    showMessage('数据库创建成功');
+                } else {
+                    showMessage(data.message || '数据库创建失败', 'error');
+                }
+            })
+            .catch(error => {
+                showMessage('网络错误，无法创建数据库', 'error');
+                console.error(error);
+            });
+        }
+
+        // 显示消息提示
+        function showMessage(message, type = 'success') {
+            const messagesDiv = document.getElementById('login-messages') || document.createElement('div');
+            if (!document.getElementById('login-messages')) {
+                messagesDiv.id = 'login-messages';
+                messagesDiv.style.position = 'fixed';
+                messagesDiv.style.top = '20px';
+                messagesDiv.style.right = '20px';
+                messagesDiv.style.zIndex = '9999';
+                document.body.appendChild(messagesDiv);
+            }
+
+            const alertClass = type === 'error' ? 'alert-danger' : 'alert-success';
+            messagesDiv.innerHTML = `<div class="alert ${alertClass}" style="padding: 10px 20px; margin-bottom: 10px; border-radius: 4px;">${message}</div>`;
+
+            setTimeout(() => {
+                messagesDiv.innerHTML = '';
+            }, 3000);
+        }
+
+        // 渲染网站表格
+        function renderSitesTable(sites) {
+            const tbody = document.getElementById('sitesTableBody');
+            tbody.innerHTML = '';
+
+            if (!sites || sites.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="8" style="text-align: center;">暂无网站数据</td></tr>';
+                return;
+            }
+
+            sites.forEach(site => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${site.domain}</td>
+                    <td>${site.port}</td>
+                    <td>${site.php_version || '无'}</td>
+                    <td>${site.ssl ? '<span class="status-badge status-normal">已启用</span>' : '<span class="status-badge status-warning">未启用</span>'}</td>
+                    <td>${site.status ? '<span class="status-badge status-normal">运行中</span>' : '<span class="status-badge status-error">已停止</span>'}</td>
+                    <td>${site.path}</td>
+                    <td>${site.size}</td>
+                    <td class="action-buttons">
+                        <button class="btn btn-primary" onclick="editSite(${JSON.stringify(site).replace(/\"/g, '\\\"')})"><i class="fas fa-edit"></i></button>
+                        <button class="btn btn-danger" onclick="deleteSite('${site.id}')"><i class="fas fa-trash"></i></button>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        // 渲染数据库表格
+        function renderDatabasesTable(databases) {
+            const mysqlTbody = document.getElementById('mysqlTableBody');
+            const sqliteTbody = document.getElementById('sqliteTableBody');
+            mysqlTbody.innerHTML = '';
+            sqliteTbody.innerHTML = '';
+
+            if (!databases || databases.length === 0) {
+                mysqlTbody.innerHTML = '<tr><td colspan="5" style="text-align: center;">暂无MySQL数据库数据</td></tr>';
+                sqliteTbody.innerHTML = '<tr><td colspan="4" style="text-align: center;">暂无SQLite数据库数据</td></tr>';
+                return;
+            }
+
+            const mysqlDatabases = databases.filter(db => db.type === 'mysql');
+            const sqliteDatabases = databases.filter(db => db.type === 'sqlite');
+
+            if (mysqlDatabases.length === 0) {
+                mysqlTbody.innerHTML = '<tr><td colspan="5" style="text-align: center;">暂无MySQL数据库数据</td></tr>';
+            } else {
+                mysqlDatabases.forEach(db => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${db.name}</td>
+                        <td>${db.size}</td>
+                        <td>${db.user}</td>
+                        <td><span class="status-badge status-normal">正常</span></td>
+                        <td class="action-buttons">
+                            <button class="btn btn-primary" onclick="backupDatabase('${db.id}')"><i class="fas fa-download"></i></button>
+                            <button class="btn btn-danger" onclick="deleteDatabase('${db.id}')"><i class="fas fa-trash"></i></button>
+                        </td>
+                    `;
+                    mysqlTbody.appendChild(row);
+                });
+            }
+
+            if (sqliteDatabases.length === 0) {
+                sqliteTbody.innerHTML = '<tr><td colspan="4" style="text-align: center;">暂无SQLite数据库数据</td></tr>';
+            } else {
+                sqliteDatabases.forEach(db => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${db.name}</td>
+                        <td>${db.size}</td>
+                        <td>${db.path}</td>
+                        <td class="action-buttons">
+                            <button class="btn btn-primary" onclick="backupDatabase('${db.id}')"><i class="fas fa-download"></i></button>
+                            <button class="btn btn-danger" onclick="deleteDatabase('${db.id}')"><i class="fas fa-trash"></i></button>
+                        </td>
+                    `;
+                    sqliteTbody.appendChild(row);
+                });
+            }
+        }
+
+        // DOM 加载完成后初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            initRouter();
+            checkLoginStatus();
+            if (appState.userAuthenticated) {
+                loadDashboardData();
+                initModals();
+                initTabs();
+                initForms();
+            }
+        })
