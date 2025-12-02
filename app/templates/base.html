@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Tiny Panel{% endblock %}</title>
+    
+    <!-- 引入CSS样式 -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+    
+    <!-- 引入JavaScript库 -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    {% block styles %}{% endblock %}
+</head>
+<body>
+    <!-- 顶部导航栏 -->
+    {% include 'includes/_navbar.html' %}
+    
+    <div class="container-fluid">
+        <div class="row">
+            <!-- 侧边栏 -->
+            {% if current_user.is_authenticated %}
+                {% include 'includes/_sidebar.html' %}
+            {% endif %}
+            
+            <!-- 主内容区域 -->
+            <main role="main" class="col-md-9 ml-sm-auto col-lg-10 px-4">
+                <!-- 消息提示 -->
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        {% for category, message in messages %}
+                            <div class="alert alert-{{ category }} alert-dismissible fade show mt-4" role="alert">
+                                {{ message }}
+                                <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                                    <span aria-hidden="true">&times;</span>
+                                </button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                {% endwith %}
+                
+                <!-- 页面内容 -->
+                {% block content %}{% endblock %}
+            </main>
+        </div>
+    </div>
+    
+    <!-- 页脚 -->
+    {% if current_user.is_authenticated %}
+        {% include 'includes/_footer.html' %}
+    {% endif %}
+    
+    <!-- 自定义JavaScript -->
+    {% block scripts %}{% endblock %}
+</body>
+</html>

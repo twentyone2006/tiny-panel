@@ -1,0 +1,421 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- 页面标题 -->
+    <div class="row">
+        <div class="col-md-12">
+            <h1 class="h3 mb-4 text-gray-800">文件管理</h1>
+        </div>
+    </div>
+    
+    <!-- 面包屑导航 -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('files.file_manager') }}">文件管理</a></li>
+                    {% if current_path %}
+                        {% set path_parts = current_path.split('/') %}
+                        {% set current_part = '' %}
+                        {% for part in path_parts %}
+                            {% if part %}
+                                {% set current_part = current_part + '/' + part %}
+                                <li class="breadcrumb-item"><a href="{{ url_for('files.browse', path=current_part[1:]) }}">{{ part }}</a></li>
+                            {% endif %}
+                        {% endfor %}
+                    {% endif %}
+                </ol>
+            </nav>
+        </div>
+    </div>
+    
+    <!-- 工具栏 -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card shadow">
+                <div class="card-body">
+                    <div class="row">
+                        <!-- 导航按钮 -->
+                        <div class="col-md-4 mb-2">
+                            <div class="btn-group">
+                                <a href="{{ url_for('files.browse', path=parent_path) }}" class="btn btn-secondary">
+                                    <i class="fas fa-arrow-left"></i> 返回上一级
+                                </a>
+                                <button type="button" class="btn btn-secondary dropdown-toggle dropdown-toggle-split" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                    <span class="sr-only">更多操作</span>
+                                </button>
+                                <div class="dropdown-menu">
+                                    <button type="button" class="dropdown-item" data-toggle="modal" data-target="#createFolderModal">
+                                        <i class="fas fa-folder-plus"></i> 新建文件夹
+                                    </button>
+                                    <button type="button" class="dropdown-item" data-toggle="modal" data-target="#createFileModal">
+                                        <i class="fas fa-file-plus"></i> 新建文件
+                                    </button>
+                                    <div class="dropdown-divider"></div>
+                                    <button type="button" class="dropdown-item" data-toggle="modal" data-target="#uploadModal">
+                                        <i class="fas fa-upload"></i> 上传文件
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 文件路径显示 -->
+                        <div class="col-md-8 mb-2">
+                            <div class="input-group">
+                                <div class="input-group-prepend">
+                                    <span class="input-group-text">当前路径</span>
+                                </div>
+                                <input type="text" class="form-control" value="/{{ current_path }}" readonly>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 文件和文件夹列表 -->
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">文件列表</h6>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-bordered" id="fileTable" width="100%" cellspacing="0">
+                            <thead>
+                                <tr>
+                                    <th>名称</th>
+                                    <th>类型</th>
+                                    <th>大小</th>
+                                    <th>权限</th>
+                                    <th>修改时间</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tfoot>
+                                <tr>
+                                    <th>名称</th>
+                                    <th>类型</th>
+                                    <th>大小</th>
+                                    <th>权限</th>
+                                    <th>修改时间</th>
+                                    <th>操作</th>
+                                </tr>
+                            </tfoot>
+                            <tbody>
+                                <!-- 显示文件夹 -->
+                                {% for directory in directories %}
+                                    <tr>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <i class="fas fa-folder text-primary mr-2"></i>
+                                                <a href="{{ url_for('files.browse', path=directory.path) }}">{{ directory.name }}</a>
+                                            </div>
+                                        </td>
+                                        <td><span class="badge badge-primary">文件夹</span></td>
+                                        <td>-</td>
+                                        <td>{{ directory.permissions }}</td>
+                                        <td>{{ directory.modified_time|datetimeformat }}</td>
+                                        <td>
+                                            <div class="btn-group">
+                                                <button type="button" class="btn btn-sm btn-info" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                                    <i class="fas fa-ellipsis-h"></i>
+                                                </button>
+                                                <div class="dropdown-menu">
+                                                    <button type="button" class="dropdown-item" data-toggle="modal" data-target="#renameModal" onclick="setRenameInfo('{{ directory.path }}', '{{ directory.name }}')">
+                                                        <i class="fas fa-edit"></i> 重命名
+                                                    </button>
+                                                    <button type="button" class="dropdown-item" data-toggle="modal" data-target="#copyModal" onclick="setCopyMoveInfo('{{ directory.path }}', '{{ directory.name }}', 'copy')">
+                                                        <i class="fas fa-copy"></i> 复制
+                                                    </button>
+                                                    <button type="button" class="dropdown-item" data-toggle="modal" data-target="#moveModal" onclick="setCopyMoveInfo('{{ directory.path }}', '{{ directory.name }}', 'move')">
+                                                        <i class="fas fa-cut"></i> 移动
+                                                    </button>
+                                                    <div class="dropdown-divider"></div>
+                                                    <button type="button" class="dropdown-item text-danger" onclick="deleteItem('{{ directory.path }}', '{{ directory.name }}')">
+                                                        <i class="fas fa-trash"></i> 删除
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                                
+                                <!-- 显示文件 -->
+                                {% for file in files_list %}
+                                    <tr>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <i class="fas fa-file-{{ file.type }} text-secondary mr-2"></i>
+                                                {{ file.name }}
+                                            </div>
+                                        </td>
+                                        <td><span class="badge badge-secondary">{{ file.type }}</span></td>
+                                        <td>{{ file.size }}</td>
+                                        <td>{{ file.permissions }}</td>
+                                        <td>{{ file.modified_time|datetimeformat }}</td>
+                                        <td>
+                                            <div class="btn-group">
+                                                <a href="{{ url_for('files.edit_file', path=file.path) }}" class="btn btn-sm btn-info">
+                                                    <i class="fas fa-edit"></i>
+                                                </a>
+                                                <a href="{{ url_for('files.download_file', path=file.path) }}" class="btn btn-sm btn-primary ml-1">
+                                                    <i class="fas fa-download"></i>
+                                                </a>
+                                                <button type="button" class="btn btn-sm btn-info ml-1" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                                    <i class="fas fa-ellipsis-h"></i>
+                                                </button>
+                                                <div class="dropdown-menu">
+                                                    <button type="button" class="dropdown-item" data-toggle="modal" data-target="#renameModal" onclick="setRenameInfo('{{ file.path }}', '{{ file.name }}')">
+                                                        <i class="fas fa-edit"></i> 重命名
+                                                    </button>
+                                                    <button type="button" class="dropdown-item" data-toggle="modal" data-target="#copyModal" onclick="setCopyMoveInfo('{{ file.path }}', '{{ file.name }}', 'copy')">
+                                                        <i class="fas fa-copy"></i> 复制
+                                                    </button>
+                                                    <button type="button" class="dropdown-item" data-toggle="modal" data-target="#moveModal" onclick="setCopyMoveInfo('{{ file.path }}', '{{ file.name }}', 'move')">
+                                                        <i class="fas fa-cut"></i> 移动
+                                                    </button>
+                                                    <div class="dropdown-divider"></div>
+                                                    <button type="button" class="dropdown-item text-danger" onclick="deleteItem('{{ file.path }}', '{{ file.name }}')">
+                                                        <i class="fas fa-trash"></i> 删除
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 新建文件夹模态框 -->
+<div class="modal fade" id="createFolderModal" tabindex="-1" role="dialog" aria-labelledby="createFolderModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="createFolderModalLabel">新建文件夹</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <form action="{{ url_for('files.create_directory', path=current_path) }}" method="POST">
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="folderName">文件夹名称</label>
+                        <input type="text" class="form-control" id="folderName" name="dir_name" placeholder="请输入文件夹名称" required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">取消</button>
+                    <button type="submit" class="btn btn-primary">创建</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- 新建文件模态框 -->
+<div class="modal fade" id="createFileModal" tabindex="-1" role="dialog" aria-labelledby="createFileModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="createFileModalLabel">新建文件</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <form action="{{ url_for('files.create', path=current_path) }}" method="POST">
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="fileName">文件名称</label>
+                        <input type="text" class="form-control" id="fileName" name="file_name" placeholder="请输入文件名称（包含扩展名）" required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">取消</button>
+                    <button type="submit" class="btn btn-primary">创建</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- 上传文件模态框 -->
+<div class="modal fade" id="uploadModal" tabindex="-1" role="dialog" aria-labelledby="uploadModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="uploadModalLabel">上传文件</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <form action="{{ url_for('files.upload_file', path=current_path) }}" method="POST" enctype="multipart/form-data">
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="fileUpload">选择文件</label>
+                        <input type="file" class="form-control-file" id="fileUpload" name="file" required>
+                        <small class="form-text text-muted">支持上传的文件类型：txt, pdf, png, jpg, jpeg, gif, doc, docx, xls, xlsx, zip, rar, tar, gz</small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">取消</button>
+                    <button type="submit" class="btn btn-primary">上传</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- 重命名模态框 -->
+<div class="modal fade" id="renameModal" tabindex="-1" role="dialog" aria-labelledby="renameModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="renameModalLabel">重命名</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <form id="renameForm" method="POST">
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="newName">新名称</label>
+                        <input type="text" class="form-control" id="newName" name="new_name" placeholder="请输入新名称" required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">取消</button>
+                    <button type="submit" class="btn btn-primary">重命名</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- 复制模态框 -->
+<div class="modal fade" id="copyModal" tabindex="-1" role="dialog" aria-labelledby="copyModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="copyModalLabel">复制</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <form id="copyForm" method="POST">
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="copyTargetPath">目标路径</label>
+                        <input type="text" class="form-control" id="copyTargetPath" name="target_path" placeholder="请输入目标路径" required>
+                        <small class="form-text text-muted">相对于根目录的路径，如：home/user/documents</small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">取消</button>
+                    <button type="submit" class="btn btn-primary">复制</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- 移动模态框 -->
+<div class="modal fade" id="moveModal" tabindex="-1" role="dialog" aria-labelledby="moveModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="moveModalLabel">移动</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <form id="moveForm" method="POST">
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="moveTargetPath">目标路径</label>
+                        <input type="text" class="form-control" id="moveTargetPath" name="target_path" placeholder="请输入目标路径" required>
+                        <small class="form-text text-muted">相对于根目录的路径，如：home/user/documents</small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">取消</button>
+                    <button type="submit" class="btn btn-primary">移动</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- JavaScript -->
+<script>
+    $(document).ready(function() {
+        // 初始化文件表格
+        $('#fileTable').DataTable({
+            "columnDefs": [
+                { "orderable": false, "targets": [5] }
+            ],
+            "order": [[0, "asc"]]
+        });
+    });
+    
+    // 设置重命名信息
+    function setRenameInfo(path, name) {
+        document.getElementById('newName').value = name;
+        document.getElementById('renameForm').action = '{{ url_for('files.rename', path='') }}' + path;
+    }
+    
+    // 设置复制/移动信息
+    function setCopyMoveInfo(path, name, action) {
+        if (action === 'copy') {
+            document.getElementById('copyForm').action = '{{ url_for('files.copy_file', path='') }}' + path;
+        } else {
+            document.getElementById('moveForm').action = '{{ url_for('files.move_file', path='') }}' + path;
+        }
+    }
+    
+    // 删除文件或文件夹
+    function deleteItem(path, name) {
+        if (confirm('确定要删除 "' + name + '" 吗？此操作不可恢复！')) {
+            window.location.href = '{{ url_for('files.delete', path='') }}' + path;
+        }
+    }
+    
+    // 添加日期格式化过滤器
+    $.fn.dataTable.ext.errMode = 'throw';
+</script>
+
+<!-- 日期格式化过滤器的JavaScript实现 -->
+<script>
+    // 日期格式化函数
+    function formatDate(timestamp) {
+        const date = new Date(timestamp * 1000);
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        const hours = String(date.getHours()).padStart(2, '0');
+        const minutes = String(date.getMinutes()).padStart(2, '0');
+        const seconds = String(date.getSeconds()).padStart(2, '0');
+        
+        return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+    }
+    
+    // 为表格中的日期添加格式化
+    $(document).ready(function() {
+        $('td:nth-child(5)').each(function() {
+            const timestamp = parseFloat($(this).text());
+            if (!isNaN(timestamp)) {
+                $(this).text(formatDate(timestamp));
+            }
+        });
+    });
+</script>
+{% endblock %}

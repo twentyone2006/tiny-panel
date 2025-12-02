@@ -1,0 +1,732 @@
+{% extends 'base.html' %}
+
+{% block title %}数据库管理 - Tiny Panel{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- 页面标题 -->
+    <h1 class="h3 mb-4 text-gray-800">数据库管理</h1>
+    
+    <!-- 操作消息提示 -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    {% for category, message in messages %}
+    <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+        {{ message }}
+        <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+        </button>
+    </div>
+    {% endfor %}
+    {% endif %}
+    {% endwith %}
+    
+    <!-- 数据库类型选择和创建按钮 -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">数据库概览</h6>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <!-- 可用数据库类型 -->
+                <div class="col-md-6">
+                    <h5>可用的数据库类型</h5>
+                    <div class="mt-2">
+                        {% if available_db_types %}
+                        <div class="d-flex flex-wrap">
+                            {% for db_type in available_db_types %}
+                            <span class="badge badge-success mr-2 mb-2">
+                                <i class="fas fa-database mr-1"></i>{{ db_type }}
+                            </span>
+                            {% endfor %}
+                        </div>
+                        {% else %}
+                        <div class="alert alert-warning">
+                            <i class="fas fa-exclamation-triangle mr-2"></i>未检测到可用的数据库服务
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <!-- 创建数据库按钮 -->
+                <div class="col-md-6 text-right">
+                    <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#createDatabaseModal">
+                        <i class="fas fa-plus mr-2"></i>创建数据库
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 数据库列表 -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <div class="row">
+                <div class="col">
+                    <h6 class="m-0 font-weight-bold text-primary">数据库列表</h6>
+                </div>
+                <div class="col-md-4">
+                    <div class="input-group">
+                        <input type="text" class="form-control" id="searchDatabase" placeholder="搜索数据库...">
+                        <div class="input-group-append">
+                            <button class="btn btn-outline-secondary" type="button">
+                                <i class="fas fa-search"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered" id="databasesTable" width="100%" cellspacing="0">
+                    <thead>
+                        <tr>
+                            <th>名称</th>
+                            <th>类型</th>
+                            <th>大小</th>
+                            <th>表数量</th>
+                            <th>用户名</th>
+                            <th>创建时间</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if databases %}
+                        {% for db in databases %}
+                        <tr>
+                            <td>
+                                <i class="fas fa-database text-primary mr-2"></i>
+                                {{ db.name }}
+                            </td>
+                            <td>
+                                <span class="badge badge-info">
+                                    {{ db.type }}
+                                </span>
+                            </td>
+                            <td>{{ db.size_mb|round(2) }} MB</td>
+                            <td>{{ db.table_count }}</td>
+                            <td>{{ db.user }}</td>
+                            <td>{{ db.created_at|datetimeformat }}</td>
+                            <td>
+                                <div class="btn-group" role="group">
+                                    <!-- 查看详情 -->
+                                    <button type="button" class="btn btn-info btn-sm" data-toggle="modal" data-target="#viewDatabaseModal" data-db-id="{{ db.id }}">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                    
+                                    <!-- 修改密码 -->
+                                    <button type="button" class="btn btn-warning btn-sm" data-toggle="modal" data-target="#changePasswordModal" data-db-id="{{ db.id }}">
+                                        <i class="fas fa-key"></i>
+                                    </button>
+                                    
+                                    <!-- 备份数据库 -->
+                                    <button type="button" class="btn btn-success btn-sm" data-toggle="modal" data-target="#backupDatabaseModal" data-db-id="{{ db.id }}">
+                                        <i class="fas fa-download"></i>
+                                    </button>
+                                    
+                                    <!-- 数据库备份管理 -->
+                                    <button type="button" class="btn btn-secondary btn-sm" data-toggle="modal" data-target="#manageBackupsModal" data-db-id="{{ db.id }}">
+                                        <i class="fas fa-history"></i>
+                                    </button>
+                                    
+                                    <!-- 删除数据库 -->
+                                    <button type="button" class="btn btn-danger btn-sm" data-toggle="modal" data-target="#deleteDatabaseModal" data-db-id="{{ db.id }}">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                        {% else %}
+                        <tr>
+                            <td colspan="7" class="text-center">
+                                <i class="fas fa-inbox text-gray-400 mb-2"></i>
+                                <p>暂无数据库，请创建新的数据库</p>
+                            </td>
+                        </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 创建数据库模态框 -->
+<div class="modal fade" id="createDatabaseModal" tabindex="-1" role="dialog" aria-labelledby="createDatabaseModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <form action="{{ url_for('databases.create_database') }}" method="POST">
+                {{ create_form.hidden_tag() }}
+                <div class="modal-header">
+                    <h5 class="modal-title" id="createDatabaseModalLabel">创建数据库</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <!-- 左侧表单 -->
+                        <div class="col-md-6">
+                            <!-- 数据库类型 -->
+                            <div class="form-group">
+                                {{ create_form.db_type.label(class="form-control-label") }}
+                                {{ create_form.db_type(class="form-control") }}
+                                {% if create_form.db_type.errors %}
+                                <div class="text-danger">
+                                    {% for error in create_form.db_type.errors %}
+                                    <small>{{ error }}</small><br>
+                                    {% endfor %}
+                                </div>
+                                {% endif %}
+                            </div>
+                            
+                            <!-- 数据库名称 -->
+                            <div class="form-group">
+                                {{ create_form.db_name.label(class="form-control-label") }}
+                                {{ create_form.db_name(class="form-control") }}
+                                {% if create_form.db_name.errors %}
+                                <div class="text-danger">
+                                    {% for error in create_form.db_name.errors %}
+                                    <small>{{ error }}</small><br>
+                                    {% endfor %}
+                                </div>
+                                {% endif %}
+                            </div>
+                            
+                            <!-- 数据库用户 -->
+                            <div class="form-group">
+                                {{ create_form.db_user.label(class="form-control-label") }}
+                                {{ create_form.db_user(class="form-control") }}
+                                {% if create_form.db_user.errors %}
+                                <div class="text-danger">
+                                    {% for error in create_form.db_user.errors %}
+                                    <small>{{ error }}</small><br>
+                                    {% endfor %}
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <!-- 右侧表单 -->
+                        <div class="col-md-6">
+                            <!-- 数据库密码 -->
+                            <div class="form-group">
+                                {{ create_form.db_password.label(class="form-control-label") }}
+                                {{ create_form.db_password(class="form-control") }}
+                                {% if create_form.db_password.errors %}
+                                <div class="text-danger">
+                                    {% for error in create_form.db_password.errors %}
+                                    <small>{{ error }}</small><br>
+                                    {% endfor %}
+                                </div>
+                                {% endif %}
+                                <small class="form-text text-muted">
+                                    密码必须包含至少8个字符，包括字母和数字
+                                </small>
+                            </div>
+                            
+                            <!-- 确认密码 -->
+                            <div class="form-group">
+                                {{ create_form.confirm_password.label(class="form-control-label") }}
+                                {{ create_form.confirm_password(class="form-control") }}
+                                {% if create_form.confirm_password.errors %}
+                                <div class="text-danger">
+                                    {% for error in create_form.confirm_password.errors %}
+                                    <small>{{ error }}</small><br>
+                                    {% endfor %}
+                                </div>
+                                {% endif %}
+                            </div>
+                            
+                            <!-- 备注 -->
+                            <div class="form-group">
+                                {{ create_form.description.label(class="form-control-label") }}
+                                {{ create_form.description(class="form-control", rows="3") }}
+                                {% if create_form.description.errors %}
+                                <div class="text-danger">
+                                    {% for error in create_form.description.errors %}
+                                    <small>{{ error }}</small><br>
+                                    {% endfor %}
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">取消</button>
+                    <button type="submit" class="btn btn-primary">创建数据库</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- 查看数据库详情模态框 -->
+<div class="modal fade" id="viewDatabaseModal" tabindex="-1" role="dialog" aria-labelledby="viewDatabaseModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="viewDatabaseModalLabel">数据库详情</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="view-database-content">
+                    <!-- 内容将通过JavaScript动态加载 -->
+                    <div class="text-center py-5">
+                        <div class="spinner-border" role="status">
+                            <span class="sr-only">加载中...</span>
+                        </div>
+                        <p class="mt-2">正在加载数据库详情...</p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">关闭</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 修改数据库密码模态框 -->
+<div class="modal fade" id="changePasswordModal" tabindex="-1" role="dialog" aria-labelledby="changePasswordModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <form action="{{ url_for('databases.change_password') }}" method="POST">
+                {{ password_form.hidden_tag() }}
+                <input type="hidden" name="db_id" id="changePasswordDbId">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="changePasswordModalLabel">修改数据库密码</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <!-- 数据库信息 -->
+                    <div class="card mb-3">
+                        <div class="card-body">
+                            <h6 class="card-title">数据库信息</h6>
+                            <div class="database-info">
+                                <!-- 内容将通过JavaScript动态加载 -->
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 新密码 -->
+                    <div class="form-group">
+                        {{ password_form.new_password.label(class="form-control-label") }}
+                        {{ password_form.new_password(class="form-control") }}
+                        {% if password_form.new_password.errors %}
+                        <div class="text-danger">
+                            {% for error in password_form.new_password.errors %}
+                            <small>{{ error }}</small><br>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- 确认新密码 -->
+                    <div class="form-group">
+                        {{ password_form.confirm_new_password.label(class="form-control-label") }}
+                        {{ password_form.confirm_new_password(class="form-control") }}
+                        {% if password_form.confirm_new_password.errors %}
+                        <div class="text-danger">
+                            {% for error in password_form.confirm_new_password.errors %}
+                            <small>{{ error }}</small><br>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">取消</button>
+                    <button type="submit" class="btn btn-primary">修改密码</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- 备份数据库模态框 -->
+<div class="modal fade" id="backupDatabaseModal" tabindex="-1" role="dialog" aria-labelledby="backupDatabaseModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <form action="{{ url_for('databases.backup_database') }}" method="POST">
+                {{ backup_form.hidden_tag() }}
+                <input type="hidden" name="db_id" id="backupDbId">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="backupDatabaseModalLabel">备份数据库</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <!-- 数据库信息 -->
+                    <div class="card mb-3">
+                        <div class="card-body">
+                            <h6 class="card-title">数据库信息</h6>
+                            <div class="database-info">
+                                <!-- 内容将通过JavaScript动态加载 -->
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 备份名称 -->
+                    <div class="form-group">
+                        {{ backup_form.backup_name.label(class="form-control-label") }}
+                        {{ backup_form.backup_name(class="form-control") }}
+                        {% if backup_form.backup_name.errors %}
+                        <div class="text-danger">
+                            {% for error in backup_form.backup_name.errors %}
+                            <small>{{ error }}</small><br>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                        <small class="form-text text-muted">
+                            可选，留空将使用默认命名格式
+                        </small>
+                    </div>
+                    
+                    <!-- 备份注意事项 -->
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle mr-2"></i>
+                        <strong>备份说明：</strong>备份将以ZIP格式保存，包含完整的数据库结构和数据。
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">取消</button>
+                    <button type="submit" class="btn btn-primary">创建备份</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- 管理备份模态框 -->
+<div class="modal fade" id="manageBackupsModal" tabindex="-1" role="dialog" aria-labelledby="manageBackupsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="manageBackupsModalLabel">备份管理</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="manage-backups-content">
+                    <!-- 内容将通过JavaScript动态加载 -->
+                    <div class="text-center py-5">
+                        <div class="spinner-border" role="status">
+                            <span class="sr-only">加载中...</span>
+                        </div>
+                        <p class="mt-2">正在加载备份列表...</p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">关闭</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 删除数据库模态框 -->
+<div class="modal fade" id="deleteDatabaseModal" tabindex="-1" role="dialog" aria-labelledby="deleteDatabaseModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <form action="{{ url_for('databases.delete_database') }}" method="POST">
+                {{ delete_form.hidden_tag() }}
+                <input type="hidden" name="db_id" id="deleteDbId">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="deleteDatabaseModalLabel">删除数据库</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-danger">
+                        <i class="fas fa-exclamation-triangle mr-2"></i>
+                        <strong>警告：</strong>此操作将永久删除数据库及其所有内容，且无法恢复！
+                    </div>
+                    
+                    <!-- 数据库信息 -->
+                    <div class="card mb-3">
+                        <div class="card-body">
+                            <h6 class="card-title">数据库信息</h6>
+                            <div class="database-info">
+                                <!-- 内容将通过JavaScript动态加载 -->
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 确认删除 -->
+                    <div class="form-group">
+                        <label class="form-control-label">确认删除</label>
+                        <input type="text" class="form-control" id="confirmDeleteName" placeholder="请输入数据库名称以确认删除">
+                        <div class="text-danger mt-1" id="deleteError" style="display: none;">
+                            输入的名称与数据库名称不匹配
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">取消</button>
+                    <button type="submit" class="btn btn-danger" id="confirmDeleteBtn" disabled>删除数据库</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// 数据库列表搜索功能
+$(document).ready(function() {
+    $('#searchDatabase').on('keyup', function() {
+        var value = $(this).val().toLowerCase();
+        $('#databasesTable tbody tr').filter(function() {
+            $(this).toggle($(this).text().toLowerCase().indexOf(value) > -1);
+        });
+    });
+    
+    // 模态框加载数据库信息
+    function loadDatabaseInfo(modalId, dbId) {
+        $.ajax({
+            url: '{{ url_for('databases.get_database_info') }}',
+            type: 'GET',
+            data: { 'db_id': dbId },
+            success: function(data) {
+                var infoHtml = `
+                    <p><strong>名称：</strong>${data.name}</p>
+                    <p><strong>类型：</strong>${data.type}</p>
+                    <p><strong>用户名：</strong>${data.user}</p>
+                    <p><strong>大小：</strong>${data.size_mb.toFixed(2)} MB</p>
+                    <p><strong>表数量：</strong>${data.table_count}</p>
+                    <p><strong>创建时间：</strong>${data.created_at}</p>
+                `;
+                
+                if (data.description) {
+                    infoHtml += `<p><strong>备注：</strong>${data.description}</p>`;
+                }
+                
+                $(modalId + ' .database-info').html(infoHtml);
+            },
+            error: function() {
+                $(modalId + ' .database-info').html('<p class="text-danger">加载数据库信息失败</p>');
+            }
+        });
+    }
+    
+    // 查看数据库详情
+    $('#viewDatabaseModal').on('show.bs.modal', function(e) {
+        var dbId = $(e.relatedTarget).data('db-id');
+        $.ajax({
+            url: '{{ url_for('databases.get_database_detail') }}',
+            type: 'GET',
+            data: { 'db_id': dbId },
+            success: function(data) {
+                var contentHtml = `
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="card mb-3">
+                                <div class="card-header">
+                                    <h6>基本信息</h6>
+                                </div>
+                                <div class="card-body">
+                                    <p><strong>名称：</strong>${data.name}</p>
+                                    <p><strong>类型：</strong>${data.type}</p>
+                                    <p><strong>用户名：</strong>${data.user}</p>
+                                    <p><strong>密码：</strong>${data.password}</p>
+                                    <p><strong>大小：</strong>${data.size_mb.toFixed(2)} MB</p>
+                                    <p><strong>表数量：</strong>${data.table_count}</p>
+                                    <p><strong>创建时间：</strong>${data.created_at}</p>
+                                    ${data.description ? `<p><strong>备注：</strong>${data.description}</p>` : ''}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card mb-3">
+                                <div class="card-header">
+                                    <h6>连接信息</h6>
+                                </div>
+                                <div class="card-body">
+                                    <p><strong>主机：</strong>localhost</p>
+                                    <p><strong>端口：</strong>${data.type === 'MySQL' ? '3306' : '5432'}</p>
+                                    <p><strong>数据库名：</strong>${data.name}</p>
+                                    <p><strong>用户名：</strong>${data.user}</p>
+                                    <p><strong>密码：</strong>${data.password}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="card mt-3">
+                        <div class="card-header">
+                            <h6>表列表</h6>
+                        </div>
+                        <div class="card-body">
+                            ${data.tables_info.length > 0 ? `
+                                <div class="table-responsive">
+                                    <table class="table table-sm">
+                                        <thead>
+                                            <tr>
+                                                <th>表名</th>
+                                                <th>行数</th>
+                                                <th>大小</th>
+                                                ${data.type === 'MySQL' ? '<th>引擎</th>' : ''}
+                                                <th>创建时间</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            ${data.tables_info.map(table => `
+                                                <tr>
+                                                    <td>${table.name}</td>
+                                                    <td>${table.rows}</td>
+                                                    <td>${table.size_mb.toFixed(2)} MB</td>
+                                                    ${data.type === 'MySQL' ? `<td>${table.engine}</td>` : ''}
+                                                    <td>${table.create_time}</td>
+                                                </tr>
+                                            `).join('')}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            ` : '<p class="text-info">该数据库中没有表</p>'}
+                        </div>
+                    </div>
+                `;
+                
+                $('.view-database-content').html(contentHtml);
+            },
+            error: function() {
+                $('.view-database-content').html('<p class="text-danger text-center py-3">加载数据库详情失败</p>');
+            }
+        });
+    });
+    
+    // 修改密码模态框
+    $('#changePasswordModal').on('show.bs.modal', function(e) {
+        var dbId = $(e.relatedTarget).data('db-id');
+        $('#changePasswordDbId').val(dbId);
+        loadDatabaseInfo('#changePasswordModal', dbId);
+    });
+    
+    // 备份数据库模态框
+    $('#backupDatabaseModal').on('show.bs.modal', function(e) {
+        var dbId = $(e.relatedTarget).data('db-id');
+        $('#backupDbId').val(dbId);
+        loadDatabaseInfo('#backupDatabaseModal', dbId);
+    });
+    
+    // 管理备份模态框
+    $('#manageBackupsModal').on('show.bs.modal', function(e) {
+        var dbId = $(e.relatedTarget).data('db-id');
+        $.ajax({
+            url: '{{ url_for('databases.get_backups_list') }}',
+            type: 'GET',
+            data: { 'db_id': dbId },
+            success: function(data) {
+                if (data.length > 0) {
+                    var backupsHtml = `
+                        <div class="table-responsive">
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>文件名</th>
+                                        <th>大小</th>
+                                        <th>创建时间</th>
+                                        <th>操作</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                    `;
+                    
+                    data.forEach(backup => {
+                        backupsHtml += `
+                            <tr>
+                                <td>${backup.filename}</td>
+                                <td>${backup.size}</td>
+                                <td>${backup.created_at}</td>
+                                <td>
+                                    <div class="btn-group btn-group-sm">
+                                        <a href="{{ url_for('databases.download_backup') }}?db_id=${dbId}&backup_file=${backup.filename}" class="btn btn-info" title="下载">
+                                            <i class="fas fa-download"></i>
+                                        </a>
+                                        <button class="btn btn-danger" onclick="restoreBackup(${dbId}, '${backup.filename}')" title="还原">
+                                            <i class="fas fa-undo"></i>
+                                        </button>
+                                        <button class="btn btn-warning" onclick="deleteBackup(${dbId}, '${backup.filename}')" title="删除">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        `;
+                    });
+                    
+                    backupsHtml += `
+                                </tbody>
+                            </table>
+                        </div>
+                    `;
+                } else {
+                    var backupsHtml = '<p class="text-info text-center py-3">该数据库没有备份文件</p>';
+                }
+                
+                $('.manage-backups-content').html(backupsHtml);
+            },
+            error: function() {
+                $('.manage-backups-content').html('<p class="text-danger text-center py-3">加载备份列表失败</p>');
+            }
+        });
+    });
+    
+    // 删除数据库模态框
+    $('#deleteDatabaseModal').on('show.bs.modal', function(e) {
+        var dbId = $(e.relatedTarget).data('db-id');
+        $('#deleteDbId').val(dbId);
+        
+        // 加载数据库名称用于确认删除
+        $.ajax({
+            url: '{{ url_for('databases.get_database_info') }}',
+            type: 'GET',
+            data: { 'db_id': dbId },
+            success: function(data) {
+                $('#confirmDeleteName').data('expected', data.name);
+                loadDatabaseInfo('#deleteDatabaseModal', dbId);
+            }
+        });
+    });
+    
+    // 确认删除输入验证
+    $('#confirmDeleteName').on('input', function() {
+        var expected = $(this).data('expected');
+        var actual = $(this).val();
+        
+        if (actual === expected) {
+            $('#deleteError').hide();
+            $('#confirmDeleteBtn').prop('disabled', false);
+        } else {
+            $('#deleteError').show();
+            $('#confirmDeleteBtn').prop('disabled', true);
+        }
+    });
+    
+    // 备份操作函数
+    window.restoreBackup = function(dbId, backupFile) {
+        if (confirm('确定要使用此备份文件还原数据库吗？此操作将覆盖当前数据库的所有内容！')) {
+            window.location.href = `{{ url_for('databases.restore_backup') }}?db_id=${dbId}&backup_file=${backupFile}`;
+        }
+    };
+    
+    window.deleteBackup = function(dbId, backupFile) {
+        if (confirm('确定要删除此备份文件吗？')) {
+            window.location.href = `{{ url_for('databases.delete_backup') }}?db_id=${dbId}&backup_file=${backupFile}`;
+        }
+    };
+});
+</script>
+{% endblock %}

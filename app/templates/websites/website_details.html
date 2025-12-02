@@ -1,0 +1,455 @@
+{% extends 'base.html' %}
+
+{% block title %}网站详情 - {{ website.domain }} - Tiny Panel{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- 页面标题 -->
+    <div class="row mb-4">
+        <div class="col-sm-12">
+            <h1 class="h3 mb-0 text-gray-800">网站详情 - {{ website.domain }}</h1>
+        </div>
+    </div>
+
+    <!-- 返回按钮 -->
+    <div class="row mb-4">
+        <div class="col-sm-12">
+            <a href="{{ url_for('websites.website_manager') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left mr-2"></i>返回网站列表
+            </a>
+        </div>
+    </div>
+
+    <!-- 网站概览 -->
+    <div class="row mb-4">
+        <div class="col-xl-4 col-lg-5">
+            <!-- 网站信息卡片 -->
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">基本信息</h6>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <p class="text-gray-500">网站名称</p>
+                        </div>
+                        <div class="col-md-8">
+                            <p class="font-weight-bold">{{ website.name }}</p>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <p class="text-gray-500">域名</p>
+                        </div>
+                        <div class="col-md-8">
+                            <a href="http://{{ website.domain }}" target="_blank" class="font-weight-bold text-primary">
+                                {{ website.domain }}
+                            </a>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <p class="text-gray-500">Web服务器</p>
+                        </div>
+                        <div class="col-md-8">
+                            {% if website.web_server == 'Apache' %}
+                            <span class="badge badge-info"><i class="fab fa-apache mr-1"></i>Apache</span>
+                            {% elif website.web_server == 'Nginx' %}
+                            <span class="badge badge-warning"><i class="fab fa-nginx mr-1"></i>Nginx</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <p class="text-gray-500">PHP版本</p>
+                        </div>
+                        <div class="col-md-8">
+                            {% if website.php_version %}
+                            <span class="badge badge-secondary">{{ website.php_version }}</span>
+                            {% else %}
+                            <span class="badge badge-light">无</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <p class="text-gray-500">SSL证书</p>
+                        </div>
+                        <div class="col-md-8">
+                            {% if website.ssl_enabled %}
+                            <span class="badge badge-success"><i class="fas fa-lock mr-1"></i>已启用</span>
+                            {% else %}
+                            <span class="badge badge-danger">未启用</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <p class="text-gray-500">状态</p>
+                        </div>
+                        <div class="col-md-8">
+                            <span class="badge badge-{{ website.status == 'active' ? 'success' : 'danger' }}">
+                                {{ website.status == 'active' ? '运行中' : '已停用' }}
+                            </span>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <p class="text-gray-500">创建时间</p>
+                        </div>
+                        <div class="col-md-8">
+                            <p>{{ website.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</p>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <p class="text-gray-500">更新时间</p>
+                        </div>
+                        <div class="col-md-8">
+                            <p>{{ website.updated_at.strftime('%Y-%m-%d %H:%M:%S') }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SSL证书信息卡片 -->
+            {% if website.ssl_enabled %}
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">SSL证书信息</h6>
+                </div>
+                <div class="card-body">
+                    {% if ssl_info %}
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <p class="text-gray-500">颁发机构</p>
+                        </div>
+                        <div class="col-md-8">
+                            <p>{{ ssl_info.issuer.CN }}</p>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <p class="text-gray-500">有效期开始</p>
+                        </div>
+                        <div class="col-md-8">
+                            <p>{{ ssl_info.not_before.strftime('%Y-%m-%d %H:%M:%S') }}</p>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <p class="text-gray-500">有效期结束</p>
+                        </div>
+                        <div class="col-md-8">
+                            <p class="font-weight-bold" style="color: {{ ssl_info.remaining_days < 30 ? 'red' : ssl_info.remaining_days < 60 ? 'orange' : 'green' }}">
+                                {{ ssl_info.not_after.strftime('%Y-%m-%d %H:%M:%S') }}
+                            </p>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <p class="text-gray-500">剩余天数</p>
+                        </div>
+                        <div class="col-md-8">
+                            <p class="font-weight-bold" style="color: {{ ssl_info.remaining_days < 30 ? 'red' : ssl_info.remaining_days < 60 ? 'orange' : 'green' }}">
+                                {{ ssl_info.remaining_days }} 天
+                            </p>
+                        </div>
+                    </div>
+                    {% else %}
+                    <p class="text-danger">无法获取SSL证书信息</p>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="col-xl-8 col-lg-7">
+            <!-- 网站统计信息卡片 -->
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">网站统计</h6>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <div class="card bg-primary text-white shadow">
+                                <div class="card-body">
+                                    <div class="text-center">
+                                        <div class="text-4xl font-weight-bold mb-2">{{ stats.status == 'up' ? '在线' : '离线' }}</div>
+                                        <div class="text-lg">网站状态</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card bg-success text-white shadow">
+                                <div class="card-body">
+                                    <div class="text-center">
+                                        <div class="text-4xl font-weight-bold mb-2">{{ stats.disk_usage }}</div>
+                                        <div class="text-lg">磁盘使用</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="card bg-info text-white shadow">
+                                <div class="card-body">
+                                    <div class="text-center">
+                                        <div class="text-4xl font-weight-bold mb-2">{{ stats.file_count }}</div>
+                                        <div class="text-lg">文件数量</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card bg-warning text-white shadow">
+                                <div class="card-body">
+                                    <div class="text-center">
+                                        <div class="text-4xl font-weight-bold mb-2">{{ website.document_root }}</div>
+                                        <div class="text-lg">文档根目录</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 网站操作卡片 -->
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">操作</h6>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <button type="button" class="btn btn-primary btn-block" data-toggle="modal" data-target="#editWebsiteModal">
+                                <i class="fas fa-edit mr-2"></i>编辑网站
+                            </button>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <button type="button" class="btn btn-warning btn-block" data-toggle="modal" data-target="#sslWebsiteModal">
+                                <i class="fas fa-lock mr-2"></i>SSL证书管理
+                            </button>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <button type="button" class="btn btn-secondary btn-block" data-toggle="modal" data-target="#logsWebsiteModal">
+                                <i class="fas fa-file-alt mr-2"></i>查看日志
+                            </button>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <button type="button" class="btn btn-success btn-block" data-toggle="modal" data-target="#restartWebsiteModal">
+                                <i class="fas fa-sync-alt mr-2"></i>重启网站
+                            </button>
+                        </div>
+                        <div class="col-md-12">
+                            <button type="button" class="btn btn-danger btn-block" data-toggle="modal" data-target="#deleteWebsiteModal">
+                                <i class="fas fa-trash mr-2"></i>删除网站
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 编辑网站模态框 -->
+<div class="modal fade" id="editWebsiteModal" tabindex="-1" role="dialog" aria-labelledby="editWebsiteModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editWebsiteModalLabel">编辑网站 - {{ website.domain }}</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <form method="POST" action="{{ url_for('websites.edit_website', website_id=website.id) }}">
+                {{ edit_website_form.hidden_tag() }}
+                <div class="modal-body">
+                    <div class="form-group">
+                        {{ edit_website_form.name.label(class="form-control-label") }}
+                        {{ edit_website_form.name(class="form-control") }}
+                    </div>
+                    <div class="form-group">
+                        {{ edit_website_form.domain.label(class="form-control-label") }}
+                        {{ edit_website_form.domain(class="form-control", readonly=true) }}
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group col-md-6">
+                            {{ edit_website_form.web_server.label(class="form-control-label") }}
+                            {{ edit_website_form.web_server(class="form-control") }}
+                        </div>
+                        <div class="form-group col-md-6">
+                            {{ edit_website_form.php_version.label(class="form-control-label") }}
+                            {{ edit_website_form.php_version(class="form-control") }}
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <div class="form-check">
+                            {{ edit_website_form.ssl_enabled(class="form-check-input") }}
+                            {{ edit_website_form.ssl_enabled.label(class="form-check-label") }}
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">取消</button>
+                    {{ edit_website_form.submit(class="btn btn-primary") }}
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- SSL证书管理模态框 -->
+<div class="modal fade" id="sslWebsiteModal" tabindex="-1" role="dialog" aria-labelledby="sslWebsiteModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="sslWebsiteModalLabel">SSL证书管理 - {{ website.domain }}</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <form method="POST" action="{{ url_for('websites.ssl_website', website_id=website.id) }}">
+                {{ ssl_form.hidden_tag() }}
+                <div class="modal-body">
+                    {% if website.ssl_enabled %}
+                    <p class="mb-4">网站已启用SSL证书。</p>
+                    <div class="form-group">
+                        <div class="form-check">
+                            {{ ssl_form.disable_ssl(class="form-check-input") }}
+                            {{ ssl_form.disable_ssl.label(class="form-check-label") }}
+                        </div>
+                    </div>
+                    {% else %}
+                    <p class="mb-4">网站未启用SSL证书。启用SSL证书将为您的网站提供加密连接，提高安全性。</p>
+                    <div class="form-group">
+                        <div class="form-check">
+                            {{ ssl_form.enable_ssl(class="form-check-input") }}
+                            {{ ssl_form.enable_ssl.label(class="form-check-label") }}
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">取消</button>
+                    {% if website.ssl_enabled %}
+                    {{ ssl_form.submit(class="btn btn-danger") }}
+                    {% else %}
+                    {{ ssl_form.submit(class="btn btn-success") }}
+                    {% endif %}
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- 查看日志模态框 -->
+<div class="modal fade" id="logsWebsiteModal" tabindex="-1" role="dialog" aria-labelledby="logsWebsiteModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="logsWebsiteModalLabel">查看日志 - {{ website.domain }}</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <ul class="nav nav-tabs">
+                    <li class="nav-item">
+                        <a class="nav-link active" data-toggle="tab" href="#accessLogs">访问日志</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" data-toggle="tab" href="#errorLogs">错误日志</a>
+                    </li>
+                </ul>
+                <div class="tab-content">
+                    <div class="tab-pane fade show active" id="accessLogs">
+                        <pre class="p-3 bg-light border rounded" style="max-height: 500px; overflow-y: auto; white-space: pre-wrap;"><code>{{ access_logs }}</code></pre>
+                    </div>
+                    <div class="tab-pane fade" id="errorLogs">
+                        <pre class="p-3 bg-light border rounded" style="max-height: 500px; overflow-y: auto; white-space: pre-wrap;"><code>{{ error_logs }}</code></pre>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">关闭</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 重启网站模态框 -->
+<div class="modal fade" id="restartWebsiteModal" tabindex="-1" role="dialog" aria-labelledby="restartWebsiteModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="restartWebsiteModalLabel">重启网站 - {{ website.domain }}</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <form method="POST" action="{{ url_for('websites.restart_website', website_id=website.id) }}">
+                {{ restart_website_form.hidden_tag() }}
+                <div class="modal-body">
+                    <p>确定要重启网站 <strong>{{ website.name }}</strong> 吗？</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">取消</button>
+                    {{ restart_website_form.submit(class="btn btn-success") }}
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- 删除网站模态框 -->
+<div class="modal fade" id="deleteWebsiteModal" tabindex="-1" role="dialog" aria-labelledby="deleteWebsiteModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteWebsiteModalLabel">删除网站 - {{ website.domain }}</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <form method="POST" action="{{ url_for('websites.delete_website', website_id=website.id) }}">
+                {{ delete_website_form.hidden_tag() }}
+                <div class="modal-body">
+                    <p class="text-danger mb-4">警告：此操作将永久删除网站 <strong>{{ website.name }}</strong>，包括所有文件和配置！</p>
+                    <div class="form-group">
+                        <label for="confirmDelete">请输入网站域名 <strong>{{ website.domain }}</strong> 确认删除：</label>
+                        <input type="text" class="form-control" id="confirmDelete" name="confirm_delete" required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">取消</button>
+                    {{ delete_website_form.submit(class="btn btn-danger") }}
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // 表单验证
+    $(document).ready(function() {
+        $('#deleteWebsiteModal form').submit(function(e) {
+            var confirmInput = $('#confirmDelete').val();
+            var domain = '{{ website.domain }}';
+            
+            if (confirmInput !== domain) {
+                alert('请输入正确的域名确认删除');
+                e.preventDefault();
+            }
+        });
+    });
+</script>
+{% endblock %}

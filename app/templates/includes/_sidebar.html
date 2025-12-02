@@ -1,0 +1,176 @@
+<!-- 侧边栏导航 -->
+<nav class="col-md-2 d-none d-md-block bg-light sidebar">
+    <div class="sidebar-sticky">
+        <!-- 仪表盘快捷访问 -->
+        <ul class="nav flex-column">
+            <li class="nav-item">
+                <a class="nav-link {% if request.endpoint == 'dashboard.home' %}active{% endif %}" href="{{ url_for('dashboard.home') }}">
+                    <i class="fas fa-tachometer-alt mr-2"></i>
+                    仪表盘
+                </a>
+            </li>
+        </ul>
+        
+        <!-- 网站管理 -->
+        <h6 class="sidebar-heading d-flex justify-content-between align-items-center px-3 mt-4 mb-1 text-muted">
+            <span>网站管理</span>
+            <a class="d-flex align-items-center text-muted" href="#">
+                <i class="fas fa-plus-circle"></i>
+            </a>
+        </h6>
+        <ul class="nav flex-column mb-2">
+            <li class="nav-item">
+                <a class="nav-link {% if request.endpoint == 'websites.website_manager' %}active{% endif %}" href="{{ url_for('websites.website_manager') }}">
+                    <i class="fas fa-list mr-2"></i>
+                    网站列表
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link {% if request.endpoint == 'websites.create_website' %}active{% endif %}" href="{{ url_for('websites.create_website') }}">
+                    <i class="fas fa-plus mr-2"></i>
+                    创建网站
+                </a>
+            </li>
+        </ul>
+        
+        <!-- 数据库管理 -->
+        <h6 class="sidebar-heading d-flex justify-content-between align-items-center px-3 mt-4 mb-1 text-muted">
+            <span>数据库管理</span>
+            <a class="d-flex align-items-center text-muted" href="#">
+                <i class="fas fa-plus-circle"></i>
+            </a>
+        </h6>
+        <ul class="nav flex-column mb-2">
+            <li class="nav-item">
+                <a class="nav-link {% if request.endpoint == 'databases.list' %}active{% endif %}" href="{{ url_for('databases.list') }}">
+                    <i class="fas fa-list mr-2"></i>
+                    数据库列表
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link {% if request.endpoint == 'databases.create' %}active{% endif %}" href="{{ url_for('databases.create') }}">
+                    <i class="fas fa-plus mr-2"></i>
+                    创建数据库
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link {% if request.endpoint == 'databases.backup' %}active{% endif %}" href="{{ url_for('databases.backup') }}">
+                    <i class="fas fa-database mr-2"></i>
+                    数据库备份
+                </a>
+            </li>
+        </ul>
+        
+        <!-- 文件管理 -->
+        <h6 class="sidebar-heading d-flex justify-content-between align-items-center px-3 mt-4 mb-1 text-muted">
+            <span>文件管理</span>
+            <a class="d-flex align-items-center text-muted" href="#">
+                <i class="fas fa-plus-circle"></i>
+            </a>
+        </h6>
+        <ul class="nav flex-column mb-2">
+            <li class="nav-item">
+                <a class="nav-link {% if request.endpoint == 'files.manager' %}active{% endif %}" href="{{ url_for('files.manager') }}">
+                    <i class="fas fa-folder mr-2"></i>
+                    文件管理器
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link {% if request.endpoint == 'files.backup' %}active{% endif %}" href="{{ url_for('files.backup') }}">
+                    <i class="fas fa-archive mr-2"></i>
+                    文件备份
+                </a>
+            </li>
+        </ul>
+        
+        <!-- 软件管理 -->
+        <h6 class="sidebar-heading d-flex justify-content-between align-items-center px-3 mt-4 mb-1 text-muted">
+            <span>软件管理</span>
+            <a class="d-flex align-items-center text-muted" href="#">
+                <i class="fas fa-plus-circle"></i>
+            </a>
+        </h6>
+        <ul class="nav flex-column mb-2">
+            <li class="nav-item">
+                <a class="nav-link {% if request.endpoint == 'software.list' %}active{% endif %}" href="{{ url_for('software.list') }}">
+                    <i class="fas fa-th mr-2"></i>
+                    软件商店
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link {% if request.endpoint == 'software.installed' %}active{% endif %}" href="{{ url_for('software.installed') }}">
+                    <i class="fas fa-check-circle mr-2"></i>
+                    已安装软件
+                </a>
+            </li>
+        </ul>
+        
+        <!-- 服务器监控 -->
+        <h6 class="sidebar-heading d-flex justify-content-between align-items-center px-3 mt-4 mb-1 text-muted">
+            <span>服务器监控</span>
+            <a class="d-flex align-items-center text-muted" href="#">
+                <i class="fas fa-plus-circle"></i>
+            </a>
+        </h6>
+        <ul class="nav flex-column mb-2">
+            <li class="nav-item">
+                <a class="nav-link {% if request.endpoint.startswith('monitoring.') %}active{% endif %}" href="{{ url_for('monitoring.index') }}">
+                    <i class="fas fa-chart-line mr-2"></i>
+                    监控概览
+                </a>
+            </li>
+        </ul>
+        
+        <!-- 安全管理 -->
+        <h6 class="sidebar-heading d-flex justify-content-between align-items-center px-3 mt-4 mb-1 text-muted">
+            <span>安全管理</span>
+            <a class="d-flex align-items-center text-muted" href="#">
+                <i class="fas fa-plus-circle"></i>
+            </a>
+        </h6>
+        <ul class="nav flex-column mb-2">
+            <li class="nav-item">
+                <a class="nav-link {% if request.endpoint == 'security.firewall' %}active{% endif %}" href="{{ url_for('security.firewall') }}">
+                    <i class="fas fa-shield-alt mr-2"></i>
+                    防火墙
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link {% if request.endpoint == 'security.backup' %}active{% endif %}" href="{{ url_for('security.backup') }}">
+                    <i class="fas fa-hdd mr-2"></i>
+                    备份恢复
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link {% if request.endpoint == 'security.logs' %}active{% endif %}" href="{{ url_for('security.logs') }}">
+                    <i class="fas fa-file-alt mr-2"></i>
+                    系统日志
+                </a>
+            </li>
+        </ul>
+        
+        <!-- 系统设置 -->
+        {% if current_user.role == 'admin' %}
+            <h6 class="sidebar-heading d-flex justify-content-between align-items-center px-3 mt-4 mb-1 text-muted">
+                <span>系统设置</span>
+                <a class="d-flex align-items-center text-muted" href="#">
+                    <i class="fas fa-plus-circle"></i>
+                </a>
+            </h6>
+            <ul class="nav flex-column mb-2">
+                <li class="nav-item">
+                    <a class="nav-link {% if request.endpoint == 'users.admin_users' %}active{% endif %}" href="{{ url_for('users.admin_users') }}">
+                        <i class="fas fa-users-cog mr-2"></i>
+                        用户管理
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link {% if request.endpoint == 'security.settings' %}active{% endif %}" href="{{ url_for('security.settings') }}">
+                        <i class="fas fa-cog mr-2"></i>
+                        系统设置
+                    </a>
+                </li>
+            </ul>
+        {% endif %}
+    </div>
+</nav>

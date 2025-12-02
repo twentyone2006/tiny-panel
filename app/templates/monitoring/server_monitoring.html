@@ -1,0 +1,612 @@
+{% extends "base.html" %}
+{% block title %}{{ server.name }} - 服务器监控 - Tiny Panel{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- 页面标题 -->
+    <h1 class="h3 mb-4 text-gray-800">
+        <span class="text-primary">{{ server.name }}</span> - 服务器监控
+        <a href="{{ url_for('monitoring.index') }}" class="btn btn-secondary btn-sm float-right">
+            <i class="fas fa-arrow-left"></i> 返回列表
+        </a>
+    </h1>
+    
+    <!-- 服务器基本信息卡片 -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">服务器信息</h6>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-4">
+                    <p><strong>主机名/IP:</strong> {{ server.hostname }}</p>
+                    <p><strong>端口:</strong> {{ server.port }}</p>
+                    <p><strong>用户名:</strong> {{ server.username }}</p>
+                    <p><strong>操作系统:</strong> {{ system_info.os_name }}</p>
+                    <p><strong>内核版本:</strong> {{ system_info.kernel_version }}</p>
+                </div>
+                <div class="col-md-4">
+                    <p><strong>CPU型号:</strong> {{ system_info.cpu_model }}</p>
+                    <p><strong>CPU核心数:</strong> {{ system_info.cpu_cores }}</p>
+                    <p><strong>总内存:</strong> {{ "%.2f"|format(system_info.total_memory / 1024 / 1024 / 1024) }} GB</p>
+                    <p><strong>总磁盘空间:</strong> {{ "%.2f"|format(system_info.total_disk / 1024 / 1024 / 1024) }} GB</p>
+                </div>
+                <div class="col-md-4">
+                    <p><strong>系统运行时间:</strong> {{ system_info.uptime }}</p>
+                    <p><strong>响应时间:</strong> 
+                        {% if status.online %}
+                        <span class="text-success">{{ status.response_time }}ms</span>
+                        {% else %}
+                        <span class="text-danger">离线</span>
+                        {% endif %}
+                    </p>
+                    <p><strong>最后检查时间:</strong> {{ last_check_time }}</p>
+                    <button id="refreshBtn" class="btn btn-primary btn-sm mt-2">
+                        <i class="fas fa-sync-alt"></i> 刷新数据
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 资源使用率概览 -->
+    <div class="row">
+        <!-- CPU使用率卡片 -->
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-primary shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                CPU使用率
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800" id="cpuUsage">{{ "%.1f"|format(cpu_usage) }}%</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-microchip fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 内存使用率卡片 -->
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-info shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                                内存使用率
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800" id="memoryUsage">{{ "%.1f"|format(memory_usage) }}%</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-memory fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 磁盘使用率卡片 -->
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-warning shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                磁盘使用率
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800" id="diskUsage">{{ "%.1f"|format(disk_usage) }}%</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-hdd fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 网络状态卡片 -->
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-success shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                网络状态
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                <span id="networkStatus">
+                                    {% if status.online %}
+                                    正常
+                                    {% else %}
+                                    离线
+                                    {% endif %}
+                                </span>
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-network-wired fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 详细图表 -->
+    <div class="row">
+        <!-- CPU使用率图表 -->
+        <div class="col-lg-6">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">CPU使用率</h6>
+                </div>
+                <div class="card-body">
+                    <div class="chart-area">
+                        <canvas id="cpuChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 内存使用率图表 -->
+        <div class="col-lg-6">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">内存使用率</h6>
+                </div>
+                <div class="card-body">
+                    <div class="chart-area">
+                        <canvas id="memoryChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 磁盘使用率图表 -->
+        <div class="col-lg-6">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">磁盘使用率</h6>
+                </div>
+                <div class="card-body">
+                    <div class="chart-area">
+                        <canvas id="diskChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 网络流量图表 -->
+        <div class="col-lg-6">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">网络流量</h6>
+                </div>
+                <div class="card-body">
+                    <div class="chart-area">
+                        <canvas id="networkChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 磁盘分区信息 -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">磁盘分区信息</h6>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered" id="diskPartitionsTable" width="100%" cellspacing="0">
+                    <thead>
+                        <tr>
+                            <th>分区</th>
+                            <th>挂载点</th>
+                            <th>文件系统</th>
+                            <th>总大小</th>
+                            <th>已用</th>
+                            <th>可用</th>
+                            <th>使用率</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for partition in disk_partitions %}
+                        <tr>
+                            <td>{{ partition.device }}</td>
+                            <td>{{ partition.mount_point }}</td>
+                            <td>{{ partition.filesystem }}</td>
+                            <td>{{ "%.2f"|format(partition.total_size / 1024 / 1024 / 1024) }} GB</td>
+                            <td>{{ "%.2f"|format(partition.used_size / 1024 / 1024 / 1024) }} GB</td>
+                            <td>{{ "%.2f"|format(partition.available_size / 1024 / 1024 / 1024) }} GB</td>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <div class="mr-2">{{ partition.usage_percentage }}%</div>
+                                    <div class="w-100 bg-gray-200 rounded-full h-2.5">
+                                        <div 
+                                            class="h-2.5 rounded-full" 
+                                            style="width: {{ partition.usage_percentage }}%; background-color: {% if partition.usage_percentage > 80 %}#dc3545{% elif partition.usage_percentage > 50 %}#ffc107{% else %}#28a745{% endif %}"
+                                        ></div>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 网络接口信息 -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">网络接口信息</h6>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered" id="networkInterfacesTable" width="100%" cellspacing="0">
+                    <thead>
+                        <tr>
+                            <th>接口名称</th>
+                            <th>IP地址</th>
+                            <th>MAC地址</th>
+                            <th>接收字节</th>
+                            <th>发送字节</th>
+                            <th>接收包数</th>
+                            <th>发送包数</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for interface in network_interfaces %}
+                        <tr>
+                            <td>{{ interface.name }}</td>
+                            <td>{{ interface.ip_address }}</td>
+                            <td>{{ interface.mac_address }}</td>
+                            <td>{{ "%.2f"|format(interface.rx_bytes / 1024 / 1024) }} MB</td>
+                            <td>{{ "%.2f"|format(interface.tx_bytes / 1024 / 1024) }} MB</td>
+                            <td>{{ interface.rx_packets }}</td>
+                            <td>{{ interface.tx_packets }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 进程列表 -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">进程列表</h6>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered" id="processesTable" width="100%" cellspacing="0">
+                    <thead>
+                        <tr>
+                            <th>PID</th>
+                            <th>进程名</th>
+                            <th>用户名</th>
+                            <th>CPU%</th>
+                            <th>内存%</th>
+                            <th>状态</th>
+                            <th>启动时间</th>
+                        </tr>
+                    </thead>
+                    <tbody id="processesTableBody">
+                        <!-- 进程数据将通过JavaScript动态加载 -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- JavaScript -->
+<script>
+    // 服务器ID
+    const serverId = {{ server.id }};
+    
+    // 初始化图表
+    function initCharts() {
+        // 图表配置
+        const chartConfig = {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                x: {
+                    ticks: {
+                        maxRotation: 0
+                    }
+                },
+                y: {
+                    beginAtZero: true
+                }
+            },
+            plugins: {
+                legend: {
+                    display: false
+                }
+            }
+        };
+        
+        // 初始化CPU图表
+        const cpuCtx = document.getElementById('cpuChart').getContext('2d');
+        window.cpuChart = new Chart(cpuCtx, {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [{
+                    label: 'CPU使用率',
+                    data: [],
+                    borderColor: '#4e73df',
+                    backgroundColor: 'rgba(78, 115, 223, 0.1)',
+                    tension: 0.4,
+                    fill: true
+                }]
+            },
+            options: {
+                ...chartConfig,
+                scales: {
+                    ...chartConfig.scales,
+                    y: {
+                        ...chartConfig.scales.y,
+                        max: 100,
+                        ticks: {
+                            callback: function(value) {
+                                return value + '%';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+        
+        // 初始化内存图表
+        const memoryCtx = document.getElementById('memoryChart').getContext('2d');
+        window.memoryChart = new Chart(memoryCtx, {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [{
+                    label: '内存使用率',
+                    data: [],
+                    borderColor: '#36b9cc',
+                    backgroundColor: 'rgba(54, 185, 204, 0.1)',
+                    tension: 0.4,
+                    fill: true
+                }]
+            },
+            options: {
+                ...chartConfig,
+                scales: {
+                    ...chartConfig.scales,
+                    y: {
+                        ...chartConfig.scales.y,
+                        max: 100,
+                        ticks: {
+                            callback: function(value) {
+                                return value + '%';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+        
+        // 初始化磁盘图表
+        const diskCtx = document.getElementById('diskChart').getContext('2d');
+        window.diskChart = new Chart(diskCtx, {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [{
+                    label: '磁盘使用率',
+                    data: [],
+                    borderColor: '#f6c23e',
+                    backgroundColor: 'rgba(246, 194, 62, 0.1)',
+                    tension: 0.4,
+                    fill: true
+                }]
+            },
+            options: {
+                ...chartConfig,
+                scales: {
+                    ...chartConfig.scales,
+                    y: {
+                        ...chartConfig.scales.y,
+                        max: 100,
+                        ticks: {
+                            callback: function(value) {
+                                return value + '%';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+        
+        // 初始化网络图表
+        const networkCtx = document.getElementById('networkChart').getContext('2d');
+        window.networkChart = new Chart(networkCtx, {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [
+                    {
+                        label: '接收速度',
+                        data: [],
+                        borderColor: '#28a745',
+                        backgroundColor: 'rgba(40, 167, 69, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    },
+                    {
+                        label: '发送速度',
+                        data: [],
+                        borderColor: '#dc3545',
+                        backgroundColor: 'rgba(220, 53, 69, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    }
+                ]
+            },
+            options: {
+                ...chartConfig,
+                scales: {
+                    ...chartConfig.scales,
+                    y: {
+                        ...chartConfig.scales.y,
+                        ticks: {
+                            callback: function(value) {
+                                return (value / 1024).toFixed(1) + ' KB/s';
+                            }
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'top'
+                    }
+                }
+            }
+        });
+        
+        // 初始化数据
+        updateCharts();
+    }
+    
+    // 更新图表数据
+    function updateCharts() {
+        fetch(`/monitoring/api/monitoring_data/${serverId}`)
+            .then(response => response.json())
+            .then(data => {
+                const now = new Date().toLocaleTimeString();
+                
+                // 更新CPU图表
+                if (window.cpuChart.data.labels.length === 0 || window.cpuChart.data.labels[window.cpuChart.data.labels.length - 1] !== now) {
+                    window.cpuChart.data.labels.push(now);
+                }
+                window.cpuChart.data.datasets[0].data.push(data.cpu_usage);
+                
+                // 更新内存图表
+                if (window.memoryChart.data.labels.length === 0 || window.memoryChart.data.labels[window.memoryChart.data.labels.length - 1] !== now) {
+                    window.memoryChart.data.labels.push(now);
+                }
+                window.memoryChart.data.datasets[0].data.push(data.memory_usage);
+                
+                // 更新磁盘图表
+                if (window.diskChart.data.labels.length === 0 || window.diskChart.data.labels[window.diskChart.data.labels.length - 1] !== now) {
+                    window.diskChart.data.labels.push(now);
+                }
+                window.diskChart.data.datasets[0].data.push(data.disk_usage);
+                
+                // 更新网络图表
+                if (window.networkChart.data.labels.length === 0 || window.networkChart.data.labels[window.networkChart.data.labels.length - 1] !== now) {
+                    window.networkChart.data.labels.push(now);
+                }
+                window.networkChart.data.datasets[0].data.push(data.network_rx);
+                window.networkChart.data.datasets[1].data.push(data.network_tx);
+                
+                // 限制数据点数量
+                const charts = [window.cpuChart, window.memoryChart, window.diskChart, window.networkChart];
+                charts.forEach(chart => {
+                    if (chart.data.labels.length > 10) {
+                        chart.data.labels.shift();
+                        chart.data.datasets.forEach(dataset => {
+                            dataset.data.shift();
+                        });
+                    }
+                    chart.update();
+                });
+                
+                // 更新卡片数据
+                document.getElementById('cpuUsage').textContent = data.cpu_usage.toFixed(1) + '%';
+                document.getElementById('memoryUsage').textContent = data.memory_usage.toFixed(1) + '%';
+                document.getElementById('diskUsage').textContent = data.disk_usage.toFixed(1) + '%';
+                document.getElementById('networkStatus').textContent = data.status.online ? '正常' : '离线';
+                document.getElementById('networkStatus').className = data.status.online ? 'text-success' : 'text-danger';
+            })
+            .catch(error => {
+                console.error('获取监控数据失败:', error);
+            });
+    }
+    
+    // 加载进程列表
+    function loadProcesses() {
+        fetch(`/monitoring/api/process_list/${serverId}`)
+            .then(response => response.json())
+            .then(data => {
+                const tbody = document.getElementById('processesTableBody');
+                tbody.innerHTML = '';
+                
+                data.processes.forEach(process => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${process.pid}</td>
+                        <td>${process.name}</td>
+                        <td>${process.username}</td>
+                        <td>${process.cpu_percent.toFixed(1)}</td>
+                        <td>${process.memory_percent.toFixed(1)}</td>
+                        <td>${process.status}</td>
+                        <td>${process.start_time}</td>
+                    `;
+                    tbody.appendChild(row);
+                });
+                
+                // 初始化或更新DataTable
+                if (!window.processesTable) {
+                    window.processesTable = $('#processesTable').DataTable({
+                        "pageLength": 10,
+                        "order": [[3, "desc"]] // 默认按CPU使用率降序排序
+                    });
+                } else {
+                    window.processesTable.clear().rows.add($('#processesTableBody tr')).draw();
+                }
+            })
+            .catch(error => {
+                console.error('获取进程列表失败:', error);
+            });
+    }
+    
+    // 页面加载完成后初始化
+    $(document).ready(function() {
+        // 初始化图表
+        initCharts();
+        
+        // 初始化数据表格
+        $('#diskPartitionsTable').DataTable({
+            "pageLength": 5
+        });
+        
+        $('#networkInterfacesTable').DataTable({
+            "pageLength": 5
+        });
+        
+        // 加载进程列表
+        loadProcesses();
+        
+        // 设置定时更新
+        setInterval(updateCharts, 30000); // 每30秒更新图表
+        setInterval(loadProcesses, 60000); // 每分钟更新进程列表
+        
+        // 刷新按钮点击事件
+        document.getElementById('refreshBtn').addEventListener('click', function() {
+            updateCharts();
+            loadProcesses();
+            
+            // 显示刷新状态
+            this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 刷新中...';
+            setTimeout(() => {
+                this.innerHTML = '<i class="fas fa-sync-alt"></i> 刷新数据';
+            }, 1000);
+        });
+    });
+</script>
+{% endblock %}

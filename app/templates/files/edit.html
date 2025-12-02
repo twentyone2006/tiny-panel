@@ -1,0 +1,170 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- 页面标题 -->
+    <div class="row">
+        <div class="col-md-12">
+            <h1 class="h3 mb-4 text-gray-800">文件编辑</h1>
+        </div>
+    </div>
+    
+    <!-- 面包屑导航 -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('files.file_manager') }}">文件管理</a></li>
+                    {% if current_path %}
+                        {% set path_parts = current_path.split('/') %}
+                        {% set file_name = path_parts.pop() %}
+                        {% set current_part = '' %}
+                        {% for part in path_parts %}
+                            {% if part %}
+                                {% set current_part = current_part + '/' + part %}
+                                <li class="breadcrumb-item"><a href="{{ url_for('files.browse', path=current_part[1:]) }}">{{ part }}</a></li>
+                            {% endif %}
+                        {% endfor %}
+                        <li class="breadcrumb-item active">{{ file_name }}</li>
+                    {% endif %}
+                </ol>
+            </nav>
+        </div>
+    </div>
+    
+    <!-- 文件信息卡片 -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card shadow">
+                <div class="card-body">
+                    <div class="row">
+                        <!-- 文件名称 -->
+                        <div class="col-md-4 mb-2">
+                            <h4 class="font-weight-bold">{{ file_name }}</h4>
+                        </div>
+                        
+                        <!-- 文件路径 -->
+                        <div class="col-md-8 mb-2">
+                            <div class="input-group">
+                                <div class="input-group-prepend">
+                                    <span class="input-group-text">文件路径</span>
+                                </div>
+                                <input type="text" class="form-control" value="/{{ current_path }}" readonly>
+                            </div>
+                        </div>
+                        
+                        <!-- 文件大小 -->
+                        <div class="col-md-3 mb-2">
+                            <div class="input-group">
+                                <div class="input-group-prepend">
+                                    <span class="input-group-text">文件大小</span>
+                                </div>
+                                <input type="text" class="form-control" value="{{ file_size }}" readonly>
+                            </div>
+                        </div>
+                        
+                        <!-- 修改时间 -->
+                        <div class="col-md-4 mb-2">
+                            <div class="input-group">
+                                <div class="input-group-prepend">
+                                    <span class="input-group-text">修改时间</span>
+                                </div>
+                                <input type="text" class="form-control" value="{{ file_modified_time }}" readonly>
+                            </div>
+                        </div>
+                        
+                        <!-- 文件权限 -->
+                        <div class="col-md-3 mb-2">
+                            <div class="input-group">
+                                <div class="input-group-prepend">
+                                    <span class="input-group-text">文件权限</span>
+                                </div>
+                                <input type="text" class="form-control" value="{{ file_permissions }}" readonly>
+                            </div>
+                        </div>
+                        
+                        <!-- 文件类型 -->
+                        <div class="col-md-2 mb-2">
+                            <div class="input-group">
+                                <div class="input-group-prepend">
+                                    <span class="input-group-text">文件类型</span>
+                                </div>
+                                <input type="text" class="form-control" value="{{ file_type }}" readonly>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 文件编辑区域 -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">编辑文件</h6>
+                </div>
+                <div class="card-body">
+                    <form action="{{ url_for('files.save_file', path=current_path) }}" method="POST">
+                        <div class="form-group">
+                            <textarea class="form-control" id="fileContent" name="content" rows="20" style="font-family: 'Courier New', monospace;">{{ file_content }}</textarea>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <a href="{{ url_for('files.browse', path=parent_path) }}" class="btn btn-secondary btn-block">
+                                    <i class="fas fa-arrow-left"></i> 返回文件列表
+                                </a>
+                            </div>
+                            <div class="col-md-6">
+                                <button type="submit" class="btn btn-primary btn-block">
+                                    <i class="fas fa-save"></i> 保存文件
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 文件操作提示 -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="alert alert-info" role="alert">
+                <h5 class="alert-heading">操作提示</h5>
+                <ul>
+                    <li>请谨慎编辑系统文件，错误的修改可能导致系统功能异常。</li>
+                    <li>建议在编辑前先备份重要文件。</li>
+                    <li>某些文件可能需要特定权限才能保存修改。</li>
+                    <li>大文件编辑可能会导致浏览器性能问题。</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- JavaScript -->
+<script>
+    $(document).ready(function() {
+        // 自动调整文本区域大小
+        const textarea = document.getElementById('fileContent');
+        textarea.addEventListener('input', function() {
+            this.style.height = 'auto';
+            this.style.height = (this.scrollHeight) + 'px';
+        });
+        
+        // 初始化时自动调整
+        textarea.style.height = (textarea.scrollHeight) + 'px';
+        
+        // 页面离开前提示保存
+        window.addEventListener('beforeunload', function(e) {
+            if (document.getElementById('fileContent').value !== '{{ file_content|escapejs }}') {
+                const message = '您有未保存的修改，确定要离开吗？';
+                e.returnValue = message;
+                return message;
+            }
+        });
+    });
+</script>
+{% endblock %}

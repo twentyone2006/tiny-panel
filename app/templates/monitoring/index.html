@@ -1,0 +1,466 @@
+{% extends "base.html" %}
+{% block title %}监控管理 - Tiny Panel{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- 页面标题 -->
+    <h1 class="h3 mb-4 text-gray-800">监控管理</h1>
+    
+    <!-- 系统状态卡片 -->
+    <div class="row">
+        <!-- 服务器总数卡片 -->
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-primary shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                服务器总数
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ servers|length }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-server fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 在线服务器卡片 -->
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-success shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                在线服务器
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                {{ servers|selectattr('status.online', 'equalto', true)|list|length }}
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-check-circle fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 平均CPU使用率卡片 -->
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-info shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                                平均CPU使用率
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                {% if servers %}
+                                {{ "%.1f"|format(servers|sum(attribute='cpu_usage') / servers|length) }}%
+                                {% else %}
+                                0%
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-microchip fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 平均内存使用率卡片 -->
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-warning shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                平均内存使用率
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                {% if servers %}
+                                {{ "%.1f"|format(servers|sum(attribute='memory_usage') / servers|length) }}%
+                                {% else %}
+                                0%
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-memory fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 服务器列表 -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">服务器监控列表</h6>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered" id="serversTable" width="100%" cellspacing="0">
+                    <thead>
+                        <tr>
+                            <th>服务器名称</th>
+                            <th>主机名/IP</th>
+                            <th>状态</th>
+                            <th>CPU使用率</th>
+                            <th>内存使用率</th>
+                            <th>磁盘使用率</th>
+                            <th>网络接收</th>
+                            <th>网络发送</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for server_data in servers %}
+                        <tr>
+                            <td>{{ server_data.server.name }}</td>
+                            <td>{{ server_data.server.hostname }}</td>
+                            <td>
+                                {% if server_data.status.online %}
+                                <span class="badge badge-success">在线</span>
+                                <small class="text-gray-500">({{ server_data.status.response_time }}ms)</small>
+                                {% else %}
+                                <span class="badge badge-danger">离线</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <div class="mr-2">{{ "%.1f"|format(server_data.cpu_usage) }}%</div>
+                                    <div class="w-100 bg-gray-200 rounded-full h-2.5">
+                                        <div 
+                                            class="h-2.5 rounded-full" 
+                                            style="width: {{ server_data.cpu_usage }}%; background-color: {% if server_data.cpu_usage > 80 %}#dc3545{% elif server_data.cpu_usage > 50 %}#ffc107{% else %}#28a745{% endif %}"
+                                        ></div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <div class="mr-2">{{ "%.1f"|format(server_data.memory_usage) }}%</div>
+                                    <div class="w-100 bg-gray-200 rounded-full h-2.5">
+                                        <div 
+                                            class="h-2.5 rounded-full" 
+                                            style="width: {{ server_data.memory_usage }}%; background-color: {% if server_data.memory_usage > 80 %}#dc3545{% elif server_data.memory_usage > 50 %}#ffc107{% else %}#28a745{% endif %}"
+                                        ></div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <div class="mr-2">{{ "%.1f"|format(server_data.disk_usage) }}%</div>
+                                    <div class="w-100 bg-gray-200 rounded-full h-2.5">
+                                        <div 
+                                            class="h-2.5 rounded-full" 
+                                            style="width: {{ server_data.disk_usage }}%; background-color: {% if server_data.disk_usage > 80 %}#dc3545{% elif server_data.disk_usage > 50 %}#ffc107{% else %}#28a745{% endif %}"
+                                        ></div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                {{ "%.2f"|format(server_data.network_rx / 1024 / 1024) }} MB/s
+                            </td>
+                            <td>
+                                {{ "%.2f"|format(server_data.network_tx / 1024 / 1024) }} MB/s
+                            </td>
+                            <td>
+                                <a href="{{ url_for('monitoring.server_monitoring', server_id=server_data.server.id) }}" class="btn btn-primary btn-sm">
+                                    <i class="fas fa-chart-line"></i> 详情
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 实时监控图表 -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">实时监控概览</h6>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <!-- CPU使用率图表 -->
+                <div class="col-md-6">
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h6 class="m-0 font-weight-bold text-primary">CPU使用率</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="chart-area">
+                                <canvas id="cpuChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 内存使用率图表 -->
+                <div class="col-md-6">
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h6 class="m-0 font-weight-bold text-primary">内存使用率</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="chart-area">
+                                <canvas id="memoryChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- JavaScript -->
+<script>
+    // 获取服务器列表数据
+    const servers = {{ servers|tojson }};
+    
+    // 初始化数据表格
+    $(document).ready(function() {
+        $('#serversTable').DataTable({
+            "pageLength": 10,
+            "order": [[2, "desc"]] // 默认按状态排序
+        });
+        
+        // 初始化图表
+        initCharts();
+        
+        // 设置定时刷新
+        setInterval(updateMonitoringData, 30000); // 每30秒刷新一次
+    });
+    
+    // 初始化图表
+    function initCharts() {
+        // CPU使用率图表
+        const cpuCtx = document.getElementById('cpuChart').getContext('2d');
+        window.cpuChart = new Chart(cpuCtx, {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: []
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 100,
+                        ticks: {
+                            callback: function(value) {
+                                return value + '%';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+        
+        // 内存使用率图表
+        const memoryCtx = document.getElementById('memoryChart').getContext('2d');
+        window.memoryChart = new Chart(memoryCtx, {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: []
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 100,
+                        ticks: {
+                            callback: function(value) {
+                                return value + '%';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+        
+        // 初始化图表数据
+        updateCharts();
+    }
+    
+    // 更新图表数据
+    function updateCharts() {
+        const now = new Date().toLocaleTimeString();
+        
+        // 为每个在线服务器更新图表数据
+        servers.forEach((serverData, index) => {
+            if (serverData.status.online) {
+                // 检查是否已经为该服务器创建了数据集
+                let cpuDataset = window.cpuChart.data.datasets.find(d => d.label === serverData.server.name);
+                let memoryDataset = window.memoryChart.data.datasets.find(d => d.label === serverData.server.name);
+                
+                // 如果没有数据集，创建新的
+                if (!cpuDataset) {
+                    // 生成随机颜色
+                    const color = `rgba(${Math.floor(Math.random() * 200)}, ${Math.floor(Math.random() * 200)}, ${Math.floor(Math.random() * 200)}, 0.7)`;
+                    
+                    // 添加CPU数据集
+                    cpuDataset = {
+                        label: serverData.server.name,
+                        data: [],
+                        borderColor: color,
+                        backgroundColor: color.replace('0.7', '0.1'),
+                        tension: 0.4
+                    };
+                    window.cpuChart.data.datasets.push(cpuDataset);
+                    
+                    // 添加内存数据集
+                    memoryDataset = {
+                        label: serverData.server.name,
+                        data: [],
+                        borderColor: color,
+                        backgroundColor: color.replace('0.7', '0.1'),
+                        tension: 0.4
+                    };
+                    window.memoryChart.data.datasets.push(memoryDataset);
+                }
+                
+                // 更新数据
+                if (window.cpuChart.data.labels.length === 0 || window.cpuChart.data.labels[window.cpuChart.data.labels.length - 1] !== now) {
+                    window.cpuChart.data.labels.push(now);
+                    window.memoryChart.data.labels.push(now);
+                }
+                
+                // 限制数据点数量
+                if (window.cpuChart.data.labels.length > 10) {
+                    window.cpuChart.data.labels.shift();
+                    window.memoryChart.data.labels.shift();
+                }
+                
+                // 更新数据
+                cpuDataset.data.push(serverData.cpu_usage);
+                memoryDataset.data.push(serverData.memory_usage);
+                
+                // 限制数据点数量
+                if (cpuDataset.data.length > 10) {
+                    cpuDataset.data.shift();
+                }
+                if (memoryDataset.data.length > 10) {
+                    memoryDataset.data.shift();
+                }
+            }
+        });
+        
+        // 更新图表
+        window.cpuChart.update();
+        window.memoryChart.update();
+    }
+    
+    // 更新监控数据
+    function updateMonitoringData() {
+        servers.forEach(serverData => {
+            if (serverData.status.online) {
+                // 发送API请求获取最新数据
+                fetch(`/monitoring/api/server_status/${serverData.server.id}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        // 更新服务器数据
+                        serverData.cpu_usage = data.cpu_usage;
+                        serverData.memory_usage = data.memory_usage;
+                        serverData.disk_usage = data.disk_usage;
+                        serverData.network_rx = data.network_rx;
+                        serverData.network_tx = data.network_tx;
+                        serverData.status.response_time = data.status.response_time;
+                        
+                        // 更新表格中的数据
+                        updateTableData(serverData);
+                        
+                        // 更新图表
+                        updateCharts();
+                    })
+                    .catch(error => {
+                        console.error('更新监控数据失败:', error);
+                    });
+            }
+        });
+    }
+    
+    // 更新表格数据
+    function updateTableData(serverData) {
+        const table = $('#serversTable').DataTable();
+        const row = table.row(`tr:has(td:contains("${serverData.server.name}"))`);
+        
+        if (row.length) {
+            const data = row.data();
+            
+            // 更新CPU使用率
+            const cpuUsageTd = row.node().cells[3];
+            cpuUsageTd.innerHTML = `
+                <div class="d-flex align-items-center">
+                    <div class="mr-2">{{ "%.1f"|format(serverData.cpu_usage) }}%</div>
+                    <div class="w-100 bg-gray-200 rounded-full h-2.5">
+                        <div 
+                            class="h-2.5 rounded-full" 
+                            style="width: {{ serverData.cpu_usage }}%; background-color: {% if serverData.cpu_usage > 80 %}#dc3545{% elif serverData.cpu_usage > 50 %}#ffc107{% else %}#28a745{% endif %}"
+                        ></div>
+                    </div>
+                </div>
+            `.replace('{{ "%.1f"|format(serverData.cpu_usage) }}', serverData.cpu_usage.toFixed(1))
+              .replace('{{ serverData.cpu_usage }}', serverData.cpu_usage)
+              .replace('{% if serverData.cpu_usage > 80 %}#dc3545{% elif serverData.cpu_usage > 50 %}#ffc107{% else %}#28a745{% endif %}', 
+                       serverData.cpu_usage > 80 ? '#dc3545' : (serverData.cpu_usage > 50 ? '#ffc107' : '#28a745'));
+            
+            // 更新内存使用率
+            const memoryUsageTd = row.node().cells[4];
+            memoryUsageTd.innerHTML = `
+                <div class="d-flex align-items-center">
+                    <div class="mr-2">{{ "%.1f"|format(serverData.memory_usage) }}%</div>
+                    <div class="w-100 bg-gray-200 rounded-full h-2.5">
+                        <div 
+                            class="h-2.5 rounded-full" 
+                            style="width: {{ serverData.memory_usage }}%; background-color: {% if serverData.memory_usage > 80 %}#dc3545{% elif serverData.memory_usage > 50 %}#ffc107{% else %}#28a745{% endif %}"
+                        ></div>
+                    </div>
+                </div>
+            `.replace('{{ "%.1f"|format(serverData.memory_usage) }}', serverData.memory_usage.toFixed(1))
+              .replace('{{ serverData.memory_usage }}', serverData.memory_usage)
+              .replace('{% if serverData.memory_usage > 80 %}#dc3545{% elif serverData.memory_usage > 50 %}#ffc107{% else %}#28a745{% endif %}', 
+                       serverData.memory_usage > 80 ? '#dc3545' : (serverData.memory_usage > 50 ? '#ffc107' : '#28a745'));
+            
+            // 更新磁盘使用率
+            const diskUsageTd = row.node().cells[5];
+            diskUsageTd.innerHTML = `
+                <div class="d-flex align-items-center">
+                    <div class="mr-2">{{ "%.1f"|format(serverData.disk_usage) }}%</div>
+                    <div class="w-100 bg-gray-200 rounded-full h-2.5">
+                        <div 
+                            class="h-2.5 rounded-full" 
+                            style="width: {{ serverData.disk_usage }}%; background-color: {% if serverData.disk_usage > 80 %}#dc3545{% elif serverData.disk_usage > 50 %}#ffc107{% else %}#28a745{% endif %}"
+                        ></div>
+                    </div>
+                </div>
+            `.replace('{{ "%.1f"|format(serverData.disk_usage) }}', serverData.disk_usage.toFixed(1))
+              .replace('{{ serverData.disk_usage }}', serverData.disk_usage)
+              .replace('{% if serverData.disk_usage > 80 %}#dc3545{% elif serverData.disk_usage > 50 %}#ffc107{% else %}#28a745{% endif %}', 
+                       serverData.disk_usage > 80 ? '#dc3545' : (serverData.disk_usage > 50 ? '#ffc107' : '#28a745'));
+            
+            // 更新网络接收
+            row.node().cells[6].textContent = (serverData.network_rx / 1024 / 1024).toFixed(2) + ' MB/s';
+            
+            // 更新网络发送
+            row.node().cells[7].textContent = (serverData.network_tx / 1024 / 1024).toFixed(2) + ' MB/s';
+        }
+    }
+</script>
+{% endblock %}

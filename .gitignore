@@ -1,0 +1,48 @@
+# Virtual Environment
+venv/
+ENV/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Database
+*.db
+instance/
+*.sqlite
+
+# Logs
+logs/
+*.log
+
+# Environment Variables
+.env
+.env.local
+.env.*.local
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Build
+*.egg-info/
+dist/
+build/
+
+# Testing
+.pytest_cache/
+coverage/
+
+# Production
+gunicorn*.pid
+*.pid
+*.seed
+*.pid.lock

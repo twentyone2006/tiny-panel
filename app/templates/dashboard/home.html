@@ -1,0 +1,284 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- 欢迎信息 -->
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h3 class="m-0 font-weight-bold text-primary">欢迎使用 Tiny Panel</h3>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted">您的Linux服务器管理面板，让服务器管理变得简单高效。</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 快捷统计卡片 -->
+    <div class="row">
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-primary shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">网站数量</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ user_stats.websites }}</div>
+                            <div class="text-xs text-success"><i class="fas fa-arrow-up"></i> 2 个活跃</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-globe fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-success shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">数据库数量</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ user_stats.databases }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-database fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-warning shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">服务器数量</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ user_stats.servers }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-server fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-info shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">系统负载</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ system_info.cpu_usage }}%</div>
+                            <div class="text-xs text-info">CPU使用率</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-microchip fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 系统状态图表 -->
+    <div class="row">
+        <!-- CPU和内存使用率图表 -->
+        <div class="col-lg-8">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h4 class="m-0 font-weight-bold text-primary">系统资源监控</h4>
+                </div>
+                <div class="card-body">
+                    <div class="chart-area">
+                        <canvas id="systemResourcesChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 磁盘使用情况 -->
+        <div class="col-lg-4">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h4 class="m-0 font-weight-bold text-primary">磁盘使用情况</h4>
+                </div>
+                <div class="card-body">
+                    <div class="chart-pie">
+                        <canvas id="diskUsageChart"></canvas>
+                    </div>
+                    <div class="mt-4 text-center">
+                        <div class="text-gray-700">总容量: {{ system_info.disk_total }} GB</div>
+                        <div class="text-gray-700">已使用: {{ system_info.disk_used }} GB</div>
+                        <div class="text-gray-700">可用: {{ system_info.disk_total - system_info.disk_used }} GB</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 系统信息和最近活动 -->
+    <div class="row">
+        <!-- 系统信息 -->
+        <div class="col-lg-6">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h4 class="m-0 font-weight-bold text-primary">系统信息</h4>
+                </div>
+                <div class="card-body">
+                    <table class="table table-borderless">
+                        <tbody>
+                            <tr>
+                                <th scope="row">操作系统</th>
+                                <td>{{ system_info.os }} {{ system_info.os_version }}</td>
+                            </tr>
+                            <tr>
+                                <th scope="row">架构</th>
+                                <td>{{ system_info.architecture }}</td>
+                            </tr>
+                            <tr>
+                                <th scope="row">主机名</th>
+                                <td>{{ system_info.hostname }}</td>
+                            </tr>
+                            <tr>
+                                <th scope="row">IP地址</th>
+                                <td>{{ system_info.ip_address }}</td>
+                            </tr>
+                            <tr>
+                                <th scope="row">CPU核心</th>
+                                <td>{{ system_info.cpu_count }}</td>
+                            </tr>
+                            <tr>
+                                <th scope="row">内存</th>
+                                <td>{{ system_info.memory_used }} GB / {{ system_info.memory_total }} GB ({{ system_info.memory_percent }}%)</td>
+                            </tr>
+                            <tr>
+                                <th scope="row">磁盘</th>
+                                <td>{{ system_info.disk_used }} GB / {{ system_info.disk_total }} GB ({{ system_info.disk_percent }}%)</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 最近活动 -->
+        <div class="col-lg-6">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h4 class="m-0 font-weight-bold text-primary">最近活动</h4>
+                </div>
+                <div class="card-body">
+                    <div class="list-group">
+                        <a href="#" class="list-group-item list-group-item-action">
+                            <div class="d-flex w-100 justify-content-between">
+                                <h6 class="mb-1">网站创建成功</h6>
+                                <small>10分钟前</small>
+                            </div>
+                            <p class="mb-1">example.com 网站已成功创建</p>
+                            <small class="text-muted">状态: 活跃</small>
+                        </a>
+                        <a href="#" class="list-group-item list-group-item-action">
+                            <div class="d-flex w-100 justify-content-between">
+                                <h6 class="mb-1">数据库备份完成</h6>
+                                <small>1小时前</small>
+                            </div>
+                            <p class="mb-1">blog_db 数据库备份已完成</p>
+                            <small class="text-muted">大小: 2.5 MB</small>
+                        </a>
+                        <a href="#" class="list-group-item list-group-item-action">
+                            <div class="d-flex w-100 justify-content-between">
+                                <h6 class="mb-1">软件更新</h6>
+                                <small>2小时前</small>
+                            </div>
+                            <p class="mb-1">Nginx 已更新到最新版本</p>
+                            <small class="text-muted">版本: 1.20.1</small>
+                        </a>
+                        <a href="#" class="list-group-item list-group-item-action">
+                            <div class="d-flex w-100 justify-content-between">
+                                <h6 class="mb-1 text-warning">磁盘空间警告</h6>
+                                <small>昨天</small>
+                            </div>
+                            <p class="mb-1">系统磁盘空间使用率超过80%</p>
+                            <small class="text-muted">建议: 清理不必要的文件</small>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+    // 系统资源监控图表
+    $(document).ready(function() {
+        // CPU和内存使用率图表
+        var ctx = document.getElementById("systemResourcesChart").getContext('2d');
+        var systemResourcesChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: ['00:00', '04:00', '08:00', '12:00', '16:00', '20:00'],
+                datasets: [
+                    {
+                        label: 'CPU使用率 (%)',
+                        data: [35, 45, 40, 60, 55, 50],
+                        borderColor: '#4e73df',
+                        backgroundColor: 'rgba(78, 115, 223, 0.1)',
+                        tension: 0.1,
+                        fill: true
+                    },
+                    {
+                        label: '内存使用率 (%)',
+                        data: [65, 60, 68, 72, 70, 75],
+                        borderColor: '#1cc88a',
+                        backgroundColor: 'rgba(28, 200, 138, 0.1)',
+                        tension: 0.1,
+                        fill: true
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 100
+                    }
+                }
+            }
+        });
+        
+        // 磁盘使用情况图表
+        var diskCtx = document.getElementById("diskUsageChart").getContext('2d');
+        var diskUsageChart = new Chart(diskCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ['已使用', '可用'],
+                datasets: [{
+                    data: [{{ system_info.disk_used }}, {{ system_info.disk_total - system_info.disk_used }}],
+                    backgroundColor: ['#4e73df', '#e7e9ed'],
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                cutout: '70%',
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    }
+                }
+            }
+        });
+    });
+</script>
+{% endblock %}

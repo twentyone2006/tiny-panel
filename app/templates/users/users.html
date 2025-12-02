@@ -1,0 +1,288 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- 页面标题 -->
+    <div class="row">
+        <div class="col-md-12">
+            <h1 class="h3 mb-4 text-gray-800">用户管理</h1>
+        </div>
+    </div>
+    
+    <!-- 用户列表卡片 -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <div class="d-flex justify-content-between">
+                <h4 class="m-0 font-weight-bold text-primary">所有用户</h4>
+                <a href="#" class="btn btn-primary" data-toggle="modal" data-target="#addUserModal">
+                    <i class="fas fa-plus mr-2"></i>添加用户
+                </a>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered" id="usersTable" width="100%" cellspacing="0">
+                    <thead>
+                        <tr>
+                            <th>用户名</th>
+                            <th>邮箱</th>
+                            <th>角色</th>
+                            <th>注册日期</th>
+                            <th>最后登录</th>
+                            <th>状态</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tfoot>
+                        <tr>
+                            <th>用户名</th>
+                            <th>邮箱</th>
+                            <th>角色</th>
+                            <th>注册日期</th>
+                            <th>最后登录</th>
+                            <th>状态</th>
+                            <th>操作</th>
+                        </tr>
+                    </tfoot>
+                    <tbody>
+                        {% for user in users %}
+                        <tr>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <img class="img-profile rounded-circle mr-3" src="{{ url_for('static', filename='profile_pics/' + user.image_file) }}" style="width: 40px; height: 40px;">
+                                    <span>{{ user.username }}</span>
+                                </div>
+                            </td>
+                            <td>{{ user.email }}</td>
+                            <td>
+                                {% if user.is_admin %}
+                                <span class="badge badge-primary">管理员</span>
+                                {% else %}
+                                <span class="badge badge-secondary">普通用户</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ user.created_at.strftime('%Y-%m-%d') }}</td>
+                            <td>
+                                {% if user.last_login %}
+                                {{ user.last_login.strftime('%Y-%m-%d %H:%M') }}
+                                {% else %}
+                                从未登录
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if user.is_active %}
+                                <span class="badge badge-success">活跃</span>
+                                {% else %}
+                                <span class="badge badge-danger">禁用</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="btn-group">
+                                    <button type="button" class="btn btn-sm btn-info" data-toggle="modal" data-target="#editUserModal{{ user.id }}">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    {% if current_user.id != user.id %}
+                                    {% if user.is_active %}
+                                    <form action="{{ url_for('users.ban_user', user_id=user.id) }}" method="POST" class="d-inline">
+                                        <button type="submit" class="btn btn-sm btn-warning ml-1">
+                                            <i class="fas fa-ban"></i>
+                                        </button>
+                                    </form>
+                                    {% else %}
+                                    <form action="{{ url_for('users.unban_user', user_id=user.id) }}" method="POST" class="d-inline">
+                                        <button type="submit" class="btn btn-sm btn-success ml-1">
+                                            <i class="fas fa-check"></i>
+                                        </button>
+                                    </form>
+                                    {% endif %}
+                                    <form action="{{ url_for('users.delete_user', user_id=user.id) }}" method="POST" class="d-inline" onsubmit="return confirm('确定要删除此用户吗？此操作不可恢复！');">
+                                        <button type="submit" class="btn btn-sm btn-danger ml-1">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </form>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 添加用户模态框 -->
+<div class="modal fade" id="addUserModal" tabindex="-1" role="dialog" aria-labelledby="addUserModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addUserModalLabel">添加新用户</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <form method="POST" action="{{ url_for('users.add_user') }}">
+                {{ add_user_form.hidden_tag() }}
+                <div class="modal-body">
+                    <div class="form-group">
+                        {{ add_user_form.username.label(class="form-control-label") }}
+                        {% if add_user_form.username.errors %}
+                        {{ add_user_form.username(class="form-control form-control-lg is-invalid") }}
+                        <div class="invalid-feedback">
+                            {% for error in add_user_form.username.errors %}
+                            <span>{{ error }}</span>
+                            {% endfor %}
+                        </div>
+                        {% else %}
+                        {{ add_user_form.username(class="form-control form-control-lg") }}
+                        {% endif %}
+                    </div>
+                    <div class="form-group">
+                        {{ add_user_form.email.label(class="form-control-label") }}
+                        {% if add_user_form.email.errors %}
+                        {{ add_user_form.email(class="form-control form-control-lg is-invalid") }}
+                        <div class="invalid-feedback">
+                            {% for error in add_user_form.email.errors %}
+                            <span>{{ error }}</span>
+                            {% endfor %}
+                        </div>
+                        {% else %}
+                        {{ add_user_form.email(class="form-control form-control-lg") }}
+                        {% endif %}
+                    </div>
+                    <div class="form-group">
+                        {{ add_user_form.password.label(class="form-control-label") }}
+                        {% if add_user_form.password.errors %}
+                        {{ add_user_form.password(class="form-control form-control-lg is-invalid") }}
+                        <div class="invalid-feedback">
+                            {% for error in add_user_form.password.errors %}
+                            <span>{{ error }}</span>
+                            {% endfor %}
+                        </div>
+                        {% else %}
+                        {{ add_user_form.password(class="form-control form-control-lg") }}
+                        {% endif %}
+                    </div>
+                    <div class="form-group">
+                        {{ add_user_form.confirm_password.label(class="form-control-label") }}
+                        {% if add_user_form.confirm_password.errors %}
+                        {{ add_user_form.confirm_password(class="form-control form-control-lg is-invalid") }}
+                        <div class="invalid-feedback">
+                            {% for error in add_user_form.confirm_password.errors %}
+                            <span>{{ error }}</span>
+                            {% endfor %}
+                        </div>
+                        {% else %}
+                        {{ add_user_form.confirm_password(class="form-control form-control-lg") }}
+                        {% endif %}
+                    </div>
+                    <div class="form-check">
+                        {{ add_user_form.is_admin(class="form-check-input") }}
+                        {{ add_user_form.is_admin.label(class="form-check-label") }}
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">关闭</button>
+                    {{ add_user_form.submit(class="btn btn-primary") }}
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- 编辑用户模态框 -->
+{% for user in users %}
+<div class="modal fade" id="editUserModal{{ user.id }}" tabindex="-1" role="dialog" aria-labelledby="editUserModalLabel{{ user.id }}" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editUserModalLabel{{ user.id }}">编辑用户 - {{ user.username }}</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <form method="POST" action="{{ url_for('users.edit_user', user_id=user.id) }}">
+                {{ edit_user_form.hidden_tag() }}
+                <div class="modal-body">
+                    <div class="form-group">
+                        {{ edit_user_form.username.label(class="form-control-label") }}
+                        {% if edit_user_form.username.errors %}
+                        {{ edit_user_form.username(class="form-control form-control-lg is-invalid") }}
+                        <div class="invalid-feedback">
+                            {% for error in edit_user_form.username.errors %}
+                            <span>{{ error }}</span>
+                            {% endfor %}
+                        </div>
+                        {% else %}
+                        {{ edit_user_form.username(class="form-control form-control-lg") }}
+                        {% endif %}
+                    </div>
+                    <div class="form-group">
+                        {{ edit_user_form.email.label(class="form-control-label") }}
+                        {% if edit_user_form.email.errors %}
+                        {{ edit_user_form.email(class="form-control form-control-lg is-invalid") }}
+                        <div class="invalid-feedback">
+                            {% for error in edit_user_form.email.errors %}
+                            <span>{{ error }}</span>
+                            {% endfor %}
+                        </div>
+                        {% else %}
+                        {{ edit_user_form.email(class="form-control form-control-lg") }}
+                        {% endif %}
+                    </div>
+                    <div class="form-group">
+                        {{ edit_user_form.password.label(class="form-control-label") }}
+                        <small class="text-muted ml-2">(留空表示不修改密码)</small>
+                        {% if edit_user_form.password.errors %}
+                        {{ edit_user_form.password(class="form-control form-control-lg is-invalid") }}
+                        <div class="invalid-feedback">
+                            {% for error in edit_user_form.password.errors %}
+                            <span>{{ error }}</span>
+                            {% endfor %}
+                        </div>
+                        {% else %}
+                        {{ edit_user_form.password(class="form-control form-control-lg") }}
+                        {% endif %}
+                    </div>
+                    <div class="form-group">
+                        {{ edit_user_form.confirm_password.label(class="form-control-label") }}
+                        <small class="text-muted ml-2">(留空表示不修改密码)</small>
+                        {% if edit_user_form.confirm_password.errors %}
+                        {{ edit_user_form.confirm_password(class="form-control form-control-lg is-invalid") }}
+                        <div class="invalid-feedback">
+                            {% for error in edit_user_form.confirm_password.errors %}
+                            <span>{{ error }}</span>
+                            {% endfor %}
+                        </div>
+                        {% else %}
+                        {{ edit_user_form.confirm_password(class="form-control form-control-lg") }}
+                        {% endif %}
+                    </div>
+                    <div class="form-check">
+                        {{ edit_user_form.is_admin(class="form-check-input") }}
+                        {{ edit_user_form.is_admin.label(class="form-check-label") }}
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">关闭</button>
+                    {{ edit_user_form.submit(class="btn btn-primary") }}
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endfor %}
+
+<script>
+    $(document).ready(function() {
+        // 初始化用户表格
+        $('#usersTable').DataTable({
+            "order": [[4, "desc"]], // 默认按最后登录时间降序排序
+            "columnDefs": [
+                { "orderable": false, "targets": [6] } // 禁用操作列排序
+            ]
+        });
+    });
+</script>
+{% endblock %}

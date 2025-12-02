@@ -1,0 +1,241 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- 页面标题 -->
+    <div class="row">
+        <div class="col-md-12">
+            <h1 class="h3 mb-4 text-gray-800">文件管理</h1>
+        </div>
+    </div>
+    
+    <!-- 欢迎卡片 -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card shadow">
+                <div class="card-body">
+                    <h2 class="card-title">服务器文件管理</h2>
+                    <p class="card-text">使用文件管理器浏览、编辑、上传和下载服务器上的文件。请注意，不当的文件操作可能会影响服务器的正常运行。</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 快捷访问 -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">快捷访问</h6>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <!-- 根目录 -->
+                        <div class="col-md-3 mb-3">
+                            <a href="{{ url_for('files.browse', path='') }}" class="card text-decoration-none h-100">
+                                <div class="card-body">
+                                    <div class="d-flex align-items-center">
+                                        <div class="text-primary mr-3">
+                                            <i class="fas fa-home fa-2x"></i>
+                                        </div>
+                                        <div>
+                                            <h5 class="card-title mb-0">根目录</h5>
+                                            <p class="card-text text-muted">/</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </a>
+                        </div>
+                        
+                        <!-- 主目录 -->
+                        <div class="col-md-3 mb-3">
+                            <a href="{{ url_for('files.browse', path='home') }}" class="card text-decoration-none h-100">
+                                <div class="card-body">
+                                    <div class="d-flex align-items-center">
+                                        <div class="text-primary mr-3">
+                                            <i class="fas fa-user-home fa-2x"></i>
+                                        </div>
+                                        <div>
+                                            <h5 class="card-title mb-0">主目录</h5>
+                                            <p class="card-text text-muted">/home</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </a>
+                        </div>
+                        
+                        <!-- 配置文件目录 -->
+                        <div class="col-md-3 mb-3">
+                            <a href="{{ url_for('files.browse', path='etc') }}" class="card text-decoration-none h-100">
+                                <div class="card-body">
+                                    <div class="d-flex align-items-center">
+                                        <div class="text-primary mr-3">
+                                            <i class="fas fa-cog fa-2x"></i>
+                                        </div>
+                                        <div>
+                                            <h5 class="card-title mb-0">配置文件</h5>
+                                            <p class="card-text text-muted">/etc</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </a>
+                        </div>
+                        
+                        <!-- 网站目录 -->
+                        <div class="col-md-3 mb-3">
+                            <a href="{{ url_for('files.browse', path='www') }}" class="card text-decoration-none h-100">
+                                <div class="card-body">
+                                    <div class="d-flex align-items-center">
+                                        <div class="text-primary mr-3">
+                                            <i class="fas fa-globe fa-2x"></i>
+                                        </div>
+                                        <div>
+                                            <h5 class="card-title mb-0">网站目录</h5>
+                                            <p class="card-text text-muted">/www</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 最近访问的文件 -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">最近访问的文件</h6>
+                </div>
+                <div class="card-body">
+                    {% if recent_files %}
+                        <div class="table-responsive">
+                            <table class="table table-bordered" id="recentFilesTable" width="100%" cellspacing="0">
+                                <thead>
+                                    <tr>
+                                        <th>文件名称</th>
+                                        <th>文件路径</th>
+                                        <th>文件大小</th>
+                                        <th>访问时间</th>
+                                        <th>操作</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for file in recent_files %}
+                                        <tr>
+                                            <td>
+                                                <div class="d-flex align-items-center">
+                                                    <i class="fas fa-file-{{ file.type }} text-secondary mr-2"></i>
+                                                    {{ file.name }}
+                                                </div>
+                                            </td>
+                                            <td>{{ file.path }}</td>
+                                            <td>{{ file.size }}</td>
+                                            <td>{{ file.access_time }}</td>
+                                            <td>
+                                                <a href="{{ url_for('files.edit_file', path=file.path) }}" class="btn btn-sm btn-info">
+                                                    <i class="fas fa-edit"></i> 编辑
+                                                </a>
+                                                <a href="{{ url_for('files.download_file', path=file.path) }}" class="btn btn-sm btn-primary ml-1">
+                                                    <i class="fas fa-download"></i> 下载
+                                                </a>
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <p class="text-muted">暂无最近访问的文件记录。</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 文件操作说明 -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">操作说明</h6>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <!-- 浏览 -->
+                        <div class="col-md-3 mb-3">
+                            <div class="card">
+                                <div class="card-body">
+                                    <h5 class="card-title"><i class="fas fa-folder-open text-primary mr-2"></i>浏览</h5>
+                                    <p class="card-text">点击文件夹图标或名称进入子文件夹。</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 编辑 -->
+                        <div class="col-md-3 mb-3">
+                            <div class="card">
+                                <div class="card-body">
+                                    <h5 class="card-title"><i class="fas fa-edit text-primary mr-2"></i>编辑</h5>
+                                    <p class="card-text">点击编辑按钮修改文本文件内容。</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 上传 -->
+                        <div class="col-md-3 mb-3">
+                            <div class="card">
+                                <div class="card-body">
+                                    <h5 class="card-title"><i class="fas fa-upload text-primary mr-2"></i>上传</h5>
+                                    <p class="card-text">使用上传功能将本地文件传输到服务器。</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 下载 -->
+                        <div class="col-md-3 mb-3">
+                            <div class="card">
+                                <div class="card-body">
+                                    <h5 class="card-title"><i class="fas fa-download text-primary mr-2"></i>下载</h5>
+                                    <p class="card-text">点击下载按钮将服务器文件保存到本地。</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 安全提示 -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="alert alert-warning" role="alert">
+                <h5 class="alert-heading">安全提示</h5>
+                <ul>
+                    <li>请勿删除或修改系统关键文件，这可能导致服务器无法正常运行。</li>
+                    <li>在修改配置文件前，请确保您了解其功能和影响。</li>
+                    <li>定期备份重要数据，以防意外情况导致数据丢失。</li>
+                    <li>请勿上传可能包含恶意代码的文件到服务器。</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- JavaScript -->
+<script>
+    $(document).ready(function() {
+        // 初始化最近访问文件表格
+        $('#recentFilesTable').DataTable({
+            "columnDefs": [
+                { "orderable": false, "targets": [4] }
+            ],
+            "order": [[3, "desc"]]
+        });
+    });
+</script>
+{% endblock %}

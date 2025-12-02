@@ -1,0 +1,421 @@
+{% extends 'base.html' %}
+
+{% block title %}软件列表 - Tiny Panel{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- 页面标题和搜索栏 -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3 mb-0 text-gray-800">软件管理</h1>
+        <div class="d-flex">
+            <form class="form-inline" method="POST" action="{{ url_for('software.list') }}">
+                {{ search_form.hidden_tag() }}
+                <div class="form-group mx-sm-3 mb-2">
+                    {{ search_form.category.label(class="sr-only") }}
+                    {{ search_form.category(class="form-control", placeholder="软件类别") }}
+                </div>
+                <button type="submit" class="btn btn-primary mb-2">筛选</button>
+            </form>
+            <a href="{{ url_for('software.list') }}" class="btn btn-secondary ml-2 mb-2">重置</a>
+        </div>
+    </div>
+
+    <!-- 状态消息 -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <!-- 统计卡片 -->
+    <div class="row mb-4">
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-primary shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                可用软件总数</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ software_count }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-box fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-success shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                已安装软件</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ installed_count }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-check-circle fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-warning shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                Web服务器</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ web_count }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-server fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-info shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                                数据库</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ database_count }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-database fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 软件列表表格 -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">软件列表</h6>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered" id="dataTable" width="100%" cellspacing="0">
+                    <thead>
+                        <tr>
+                            <th>软件名称</th>
+                            <th>版本</th>
+                            <th>类别</th>
+                            <th>描述</th>
+                            <th>状态</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tfoot>
+                        <tr>
+                            <th>软件名称</th>
+                            <th>版本</th>
+                            <th>类别</th>
+                            <th>描述</th>
+                            <th>状态</th>
+                            <th>操作</th>
+                        </tr>
+                    </tfoot>
+                    <tbody>
+                        {% for software in software_list %}
+                            <tr>
+                                <td>{{ software.name }}</td>
+                                <td>{{ software.version }}</td>
+                                <td>
+                                    <span class="badge badge-{{ 
+                                        'primary' if software.category == 'web' else 
+                                        'success' if software.category == 'database' else 
+                                        'warning' if software.category == 'language' else 
+                                        'info' if software.category == 'cache' else 
+                                        'secondary'
+                                    }}">
+                                        {{ get_software_category_display(software.category) }}
+                                    </span>
+                                </td>
+                                <td>{{ software.description }}</td>
+                                <td>
+                                    {% if software.installed %}
+                                        <span class="badge badge-success">已安装</span>
+                                    {% else %}
+                                        <span class="badge badge-secondary">未安装</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if not software.installed %}
+                                        <button type="button" class="btn btn-primary btn-sm" data-toggle="modal" data-target="#installModal" data-software-id="{{ software.name }}">
+                                            安装
+                                        </button>
+                                    {% else %}
+                                        <button type="button" class="btn btn-danger btn-sm" data-toggle="modal" data-target="#uninstallModal" data-software-id="{{ software.name }}">
+                                            卸载
+                                        </button>
+                                    {% endif %}
+                                    <button type="button" class="btn btn-info btn-sm" data-toggle="modal" data-target="#detailModal" data-software-id="{{ software.name }}">
+                                        详情
+                                    </button>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 安装软件模态框 -->
+<div class="modal fade" id="installModal" tabindex="-1" role="dialog" aria-labelledby="installModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="installModalLabel">安装软件</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <form id="installForm" method="POST" action="{{ url_for('software.install') }}">
+                {{ install_form.hidden_tag() }}
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="softwareName">软件名称</label>
+                        <input type="text" class="form-control" id="softwareName" readonly>
+                        <input type="hidden" id="softwareNameInput" name="software_name">
+                    </div>
+                    <div class="form-group">
+                        {{ install_form.server.label }}
+                        {{ install_form.server(class="form-control") }}
+                    </div>
+                    <div class="alert alert-info" role="alert">
+                        安装过程可能需要一些时间，请耐心等待。
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">取消</button>
+                    <button type="submit" class="btn btn-primary">开始安装</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- 卸载软件模态框 -->
+<div class="modal fade" id="uninstallModal" tabindex="-1" role="dialog" aria-labelledby="uninstallModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="uninstallModalLabel">卸载软件</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <form id="uninstallForm" method="POST" action="{{ url_for('software.uninstall') }}">
+                {{ uninstall_form.hidden_tag() }}
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="uninstallSoftwareName">软件名称</label>
+                        <input type="text" class="form-control" id="uninstallSoftwareName" readonly>
+                        <input type="hidden" id="uninstallSoftwareNameInput" name="software_name">
+                    </div>
+                    <div class="alert alert-danger" role="alert">
+                        警告：卸载软件将删除所有相关数据，此操作不可恢复！
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">取消</button>
+                    <button type="submit" class="btn btn-danger">确认卸载</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- 软件详情模态框 -->
+<div class="modal fade" id="detailModal" tabindex="-1" role="dialog" aria-labelledby="detailModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="detailModalLabel">软件详情</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div id="softwareDetails">
+                    <!-- 软件详情将通过JavaScript动态加载 -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">关闭</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 安装状态模态框 -->
+<div class="modal fade" id="statusModal" tabindex="-1" role="dialog" aria-labelledby="statusModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="statusModalLabel">安装进度</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="progress">
+                    <div id="progressBar" class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+                </div>
+                <div id="statusMessage" class="mt-3"></div>
+                <div id="statusLog" class="mt-3 pre-scrollable" style="max-height: 200px;"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" id="closeStatusModal" data-dismiss="modal">关闭</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // 安装模态框数据填充
+    $('#installModal').on('show.bs.modal', function (event) {
+        var button = $(event.relatedTarget);
+        var softwareId = button.data('software-id');
+        var modal = $(this);
+        modal.find('#softwareName').val(softwareId);
+        modal.find('#softwareNameInput').val(softwareId);
+    });
+
+    // 卸载模态框数据填充
+    $('#uninstallModal').on('show.bs.modal', function (event) {
+        var button = $(event.relatedTarget);
+        var softwareId = button.data('software-id');
+        var modal = $(this);
+        modal.find('#uninstallSoftwareName').val(softwareId);
+        modal.find('#uninstallSoftwareNameInput').val(softwareId);
+    });
+
+    // 详情模态框数据填充
+    $('#detailModal').on('show.bs.modal', function (event) {
+        var button = $(event.relatedTarget);
+        var softwareId = button.data('software-id');
+        var modal = $(this);
+        var detailsDiv = modal.find('#softwareDetails');
+        
+        // 显示加载中
+        detailsDiv.html('<div class="text-center"><i class="fas fa-spinner fa-spin"></i> 加载中...</div>');
+        
+        // 获取软件详情
+        $.getJSON('{{ url_for('software.get_software_detail') }}', { software_id: softwareId }, function (data) {
+            if (data.success) {
+                var software = data.software;
+                detailsDiv.html(`
+                    <div class="row">
+                        <div class="col-md-4">
+                            <img src="https://via.placeholder.com/200" class="img-fluid rounded" alt="${software.name}">
+                        </div>
+                        <div class="col-md-8">
+                            <h4>${software.name} <small class="text-muted">${software.version}</small></h4>
+                            <p class="text-muted">${software.description}</p>
+                            <div class="list-group">
+                                <li class="list-group-item">
+                                    <strong>类别：</strong>
+                                    <span class="badge badge-${ 
+                                        'primary' if software.category == 'web' else 
+                                        'success' if software.category == 'database' else 
+                                        'warning' if software.category == 'language' else 
+                                        'info' if software.category == 'cache' else 
+                                        'secondary'
+                                    }">
+                                        ${software.category_display}
+                                    </span>
+                                </li>
+                                <li class="list-group-item">
+                                    <strong>安装命令：</strong>
+                                    <code>${software.install_command}</code>
+                                </li>
+                                <li class="list-group-item">
+                                    <strong>卸载命令：</strong>
+                                    <code>${software.uninstall_command}</code>
+                                </li>
+                                <li class="list-group-item">
+                                    <strong>状态：</strong>
+                                    ${software.installed ? 
+                                        '<span class="badge badge-success">已安装</span>' : 
+                                        '<span class="badge badge-secondary">未安装</span>'
+                                    }
+                                </li>
+                            </div>
+                        </div>
+                    </div>
+                `);
+            } else {
+                detailsDiv.html('<div class="alert alert-danger">加载软件详情失败</div>');
+            }
+        }).fail(function () {
+            detailsDiv.html('<div class="alert alert-danger">加载软件详情失败</div>');
+        });
+    });
+
+    // 安装表单提交处理
+    $('#installForm').submit(function (e) {
+        e.preventDefault();
+        
+        var form = $(this);
+        var formData = form.serialize();
+        var softwareName = $('#softwareNameInput').val();
+        
+        // 显示状态模态框
+        $('#statusModal').modal('show');
+        $('#statusMessage').html(`正在安装 ${softwareName}...`);
+        $('#statusLog').html('');
+        
+        // 开始安装
+        $.ajax({
+            type: 'POST',
+            url: form.attr('action'),
+            data: formData,
+            success: function (data) {
+                if (data.success) {
+                    // 安装成功，刷新页面
+                    window.location.reload();
+                } else {
+                    $('#statusMessage').html(`安装失败: ${data.message}`);
+                    $('#statusLog').html(data.log);
+                    $('#progressBar').removeClass('progress-bar-animated').addClass('bg-danger');
+                }
+            },
+            error: function () {
+                $('#statusMessage').html('安装过程中发生错误');
+                $('#progressBar').removeClass('progress-bar-animated').addClass('bg-danger');
+            }
+        });
+        
+        // 模拟进度更新
+        var progress = 0;
+        var interval = setInterval(function () {
+            progress += 5;
+            if (progress >= 100) {
+                clearInterval(interval);
+            }
+            $('#progressBar').css('width', progress + '%').attr('aria-valuenow', progress);
+        }, 1000);
+    });
+</script>
+{% endblock %}

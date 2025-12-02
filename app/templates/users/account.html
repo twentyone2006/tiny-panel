@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h3 class="m-0 font-weight-bold text-primary">账户管理</h3>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <!-- 用户头像 -->
+                            <div class="text-center">
+                                <img src="{{ image_file }}" alt="用户头像" class="rounded-circle" style="width: 150px; height: 150px; object-fit: cover; border: 5px solid #e9ecef;">
+                                <h5 class="mt-3">{{ current_user.username }}</h5>
+                                <p class="text-muted">{{ current_user.email }}</p>
+                                <p class="text-muted">{{ current_user.role }}</p>
+                                <p class="text-muted">注册时间: {{ current_user.created_at.strftime('%Y-%m-%d') }}</p>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-8">
+                            <!-- 账户信息表单 -->
+                            <form method="POST" action="" enctype="multipart/form-data">
+                                {{ form.hidden_tag() }}
+                                
+                                <div class="form-group">
+                                    <label for="username">用户名</label>
+                                    {% if form.username.errors %}
+                                        {{ form.username(class="form-control is-invalid", id="username") }}
+                                        <div class="invalid-feedback">
+                                            {% for error in form.username.errors %}
+                                                <span>{{ error }}</span>
+                                            {% endfor %}
+                                        </div>
+                                    {% else %}
+                                        {{ form.username(class="form-control", id="username") }}
+                                    {% endif %}
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="email">邮箱地址</label>
+                                    {% if form.email.errors %}
+                                        {{ form.email(class="form-control is-invalid", id="email") }}
+                                        <div class="invalid-feedback">
+                                            {% for error in form.email.errors %}
+                                                <span>{{ error }}</span>
+                                            {% endfor %}
+                                        </div>
+                                    {% else %}
+                                        {{ form.email(class="form-control", id="email") }}
+                                    {% endif %}
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="picture">更新头像</label>
+                                    <div class="custom-file">
+                                        {{ form.picture(class="custom-file-input", id="picture") }}
+                                        <label class="custom-file-label" for="picture">选择文件</label>
+                                    </div>
+                                    <small class="form-text text-muted">支持的格式: JPG, PNG (最大 16MB)</small>
+                                    {% if form.picture.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {% for error in form.picture.errors %}
+                                                <span>{{ error }}</span>
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                                
+                                <div class="form-group">
+                                    <button type="submit" class="btn btn-primary">更新账户信息</button>
+                                    <a href="#" class="btn btn-secondary ml-2">修改密码</a>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 自定义JavaScript -->
+<script>
+    // 显示选择的文件名
+    $(document).ready(function() {
+        $('.custom-file-input').on('change', function() {
+            var fileName = $(this).val().split('\\').pop();
+            $(this).next('.custom-file-label').html(fileName);
+        });
+    });
+</script>
+{% endblock %}
